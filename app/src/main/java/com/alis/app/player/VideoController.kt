@@ -72,6 +72,7 @@ class VideoController(
     var subDelayMs by mutableLongStateOf(0)
     var audioDelayMs by mutableLongStateOf(0)
     var speed by mutableFloatStateOf(1f)
+        private set
     var aspect by mutableStateOf("fit") // fit | fill | zoom | 16:9 | 4:3
     var repeat by mutableIntStateOf(0)  // 0 kapalı, 1 tek, 2 liste
     var shuffle by mutableStateOf(false)
