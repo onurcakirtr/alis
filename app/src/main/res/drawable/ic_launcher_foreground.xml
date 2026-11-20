@@ -1,0 +1,11 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Alış: ekran + içinde oynat üçgeni (Akış'ın kırmızı noktası yerine) -->
+    <path android:pathData="M37,35 H71 A7,7 0 0 1 78,42 V61 A7,7 0 0 1 71,68 H37 A7,7 0 0 1 30,61 V42 A7,7 0 0 1 37,35 Z"
+        android:strokeColor="#FFFFFFFF" android:strokeWidth="4" android:fillColor="#00000000" />
+    <path android:pathData="M44,76 H64" android:strokeColor="#FFFFFFFF" android:strokeWidth="4"
+        android:strokeLineCap="round" />
+    <path android:pathData="M50,44 L61,51.5 L50,59 Z" android:fillColor="#FFD71921"
+        android:strokeColor="#FFD71921" android:strokeWidth="2" android:strokeLineJoin="round" />
+</vector>
