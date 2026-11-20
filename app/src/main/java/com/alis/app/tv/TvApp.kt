@@ -79,6 +79,8 @@ import com.alis.core.ui.themedBackdrop
 /** Odaktaki öğenin arka plan resmi (TV'de ana sayfa ve gezginde). */
 object TvBackdrop {
     val url = mutableStateOf<String?>(null)
+    /** Odaktaki öğe (gezginde üstteki bilgi satırı) */
+    val focused = mutableStateOf<com.alis.core.model.Item?>(null)
 }
 
 private data class RailItem(val route: Route, val label: Int, val icon: ImageVector)

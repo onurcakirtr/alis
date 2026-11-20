@@ -24,6 +24,7 @@ import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Audiotrack
 import androidx.compose.material.icons.rounded.BatteryStd
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Image
@@ -124,6 +125,12 @@ private fun AkisHome(server: Server, caps: Capabilities) {
             if (tools.isNotEmpty()) item {
                 FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     tools.forEach { t -> ToolChip(t.icon, stringResource(t.label), t.onClick) }
+                }
+            }
+            val marks = s.bookmarks[server.id].orEmpty()
+            if (marks.isNotEmpty() && caps.files) item {
+                FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    marks.forEach { m -> ToolChip(Icons.Rounded.Bookmark, m.trimEnd('/').substringAfterLast('/')) { nav.push(Route.Files(server.id, m)) } }
                 }
             }
             if (h.cont.isNotEmpty()) item { Shelf(stringResource(R.string.shelf_continue), Icons.Rounded.History, server, h.cont, null) }

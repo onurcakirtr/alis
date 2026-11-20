@@ -39,7 +39,8 @@ fun <T> rememberLoad(vararg keys: Any?, block: suspend () -> T): LoadHandle<T> {
     var busy by remember { mutableStateOf(false) }
     LaunchedEffect(*keys, tick) {
         busy = true
-        if (state !is Load.Ok) state = Load.Loading
+        // Hata ekranı yeniden denerken yanıp sönmesin: yalnızca ilk yüklemede "yükleniyor"
+        if (state is Load.Loading) state = Load.Loading
         try {
             state = try {
                 Load.Ok(block())
@@ -53,7 +54,7 @@ fun <T> rememberLoad(vararg keys: Any?, block: suspend () -> T): LoadHandle<T> {
             busy = false
         }
     }
-    return LoadHandle(state, { tick++ }, busy && state is Load.Ok)
+    return LoadHandle(state, { tick++ }, busy && state !is Load.Loading)
 }
 
 @Composable

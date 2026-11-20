@@ -78,6 +78,8 @@ data class AppSettings(
     val autoplay: String = "countdown",
     /** Açılışta son kullanılan sunucuyu doğrudan aç */
     val openLast: Boolean = true,
+    /** Dosya yöneticisi yer imleri: sunucu kimliği → klasör yolları */
+    val bookmarks: Map<String, List<String>> = emptyMap(),
 ) {
     fun on(f: Feature): Boolean = features[f] ?: f.default
 }
@@ -109,6 +111,10 @@ class SettingsStore(private val ctx: Context) {
         uiMode = p[K_UI] ?: "auto",
         autoplay = p[K_AUTOPLAY] ?: (if (p[booleanPreferencesKey("f_autoplayNext")] == false) "off" else "countdown"),
         openLast = p[K_OPEN_LAST] ?: true,
+        bookmarks = runCatching {
+            val o = org.json.JSONObject(p[K_BOOKMARKS] ?: "{}")
+            o.keys().asSequence().associateWith { k -> o.getJSONArray(k).let { a -> (0 until a.length()).map { a.getString(it) } } }
+        }.getOrDefault(emptyMap()),
     )
 
     val state: StateFlow<AppSettings> = ds.data.map { read(it) }
@@ -135,6 +141,17 @@ class SettingsStore(private val ctx: Context) {
     fun setAutoplay(v: String) = scope.launch { ds.edit { it[K_AUTOPLAY] = v } }
     fun setOpenLast(v: Boolean) = scope.launch { ds.edit { it[K_OPEN_LAST] = v } }
 
+    /** Klasörü yer imlerine ekler ya da çıkarır. */
+    fun toggleBookmark(serverId: String, path: String) = scope.launch {
+        ds.edit { prefs ->
+            val o = runCatching { org.json.JSONObject(prefs[K_BOOKMARKS] ?: "{}") }.getOrDefault(org.json.JSONObject())
+            val list = o.optJSONArray(serverId)?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty().toMutableList()
+            if (path in list) list.remove(path) else list.add(path)
+            if (list.isEmpty()) o.remove(serverId) else o.put(serverId, org.json.JSONArray(list))
+            prefs[K_BOOKMARKS] = o.toString()
+        }
+    }
+
     private companion object {
         val K_THEME = stringPreferencesKey("theme")
         val K_DARK = stringPreferencesKey("darkMode")
@@ -154,5 +171,6 @@ class SettingsStore(private val ctx: Context) {
         val K_UI = stringPreferencesKey("uiMode")
         val K_AUTOPLAY = stringPreferencesKey("autoplay")
         val K_OPEN_LAST = booleanPreferencesKey("openLast")
+        val K_BOOKMARKS = stringPreferencesKey("bookmarks")
     }
 }

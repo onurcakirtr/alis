@@ -74,6 +74,11 @@ fun <T> LoadView(handle: LoadHandle<T>, server: Server?, modifier: Modifier = Mo
             if (server != null && acc != null && acc != AccessState.OFFLINE && acc != AccessState.OFF) {
                 AccessPanel(server, acc, modifier, onDone = handle.reload)
             } else {
+                // Sunucuya ulaşılamıyorsa (Akış kapalı, başka ağ) 5 sn'de bir kendiliğinden yeniden dene
+                if (acc == AccessState.OFFLINE) LaunchedEffect(st.error) {
+                    delay(5000)
+                    handle.reload()
+                }
                 MessageBox(
                     when (acc) {
                         AccessState.OFFLINE -> Icons.Rounded.CloudOff
@@ -81,7 +86,7 @@ fun <T> LoadView(handle: LoadHandle<T>, server: Server?, modifier: Modifier = Mo
                         else -> Icons.Rounded.ErrorOutline
                     },
                     errorText(st.error),
-                    if (acc == AccessState.OFFLINE) stringResource(R.string.err_offline_sub) else null,
+                    if (acc == AccessState.OFFLINE) stringResource(R.string.err_offline_sub) + if (handle.refreshing) "\n" + stringResource(R.string.err_retrying) else "" else null,
                     stringResource(R.string.retry),
                     modifier,
                     onAction = handle.reload,

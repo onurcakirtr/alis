@@ -191,6 +191,7 @@ fun TvItemCard(server: Server, item: Item, list: List<Item>, folderId: String?, 
         if (video) 280.dp else 180.dp, if (video) 16f / 9f else 1f, item.progress, item.watched, fr,
         onFocus = {
             if (!item.isFolder && item.thumb != null) TvBackdrop.url.value = item.thumb
+            TvBackdrop.focused.value = item
             onFocus()
         },
     ) { Open.item(ctx, nav, server, item, list, folderId) }
@@ -204,6 +205,12 @@ fun TvHome() {
     val nav = nav()
     val servers by g.servers.servers.collectAsStateWithLifecycle()
     val scanning by g.servers.scanning.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(30_000)
+            g.servers.scan()
+        }
+    }
     var selected by rememberSaveable { mutableStateOf(g.settings.current.lastServer) }
     val sel = servers.firstOrNull { it.id == selected } ?: servers.firstOrNull { it.online && it.isAkis } ?: servers.firstOrNull { it.online }
     val first = remember { FocusRequester() }
@@ -400,6 +407,33 @@ fun TvBrowse(serverId: String, folderId: String, title: String) {
             val start = (TvFocusMemory.map[key] ?: 0).coerceIn(0, items.size - 1)
             LaunchedEffect(items.size) { runCatching { first.requestFocus() } }
             val video = items.any { it.kind == Kind.VIDEO }
+            val ctx = LocalContext.current
+            val nav = nav()
+            // Odaktaki öğenin ayrıntısı + klasörde kaldığın yerden devam
+            val focused by TvBackdrop.focused
+            Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
+                val fi = focused?.takeIf { fo -> items.any { it.id == fo.id } }
+                Column(Modifier.weight(1f)) {
+                    if (fi != null) {
+                        Text(fi.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            listOfNotNull(
+                                itemMeta(fi).ifEmpty { null },
+                                if (fi.width > 0) "${fi.width}×${fi.height}" else null,
+                                if (fi.watched) stringResource(R.string.detail_watched) else if (fi.progress > 0f) "%${(fi.progress * 100).toInt()}" else null,
+                            ).joinToString(" · "),
+                            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                        )
+                    }
+                }
+                com.alis.app.ui.resumeTarget(items)?.let { r ->
+                    FilledTonalButton(onClick = { Open.item(ctx, nav, server, r, items, folderId) }, modifier = Modifier.focusRing(CircleShape)) {
+                        Icon(Icons.Rounded.History, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.continue_from, r.title), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 360.dp))
+                    }
+                }
+            }
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(if (video) 280.dp else 180.dp),
                 horizontalArrangement = Arrangement.spacedBy(24.dp),

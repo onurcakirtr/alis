@@ -6,7 +6,9 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.alis.app.tv.TvActivity
 import com.alis.app.ui.AlisRoot
@@ -35,7 +37,8 @@ class MobileActivity : AppCompatActivity() {
         setContent {
             AlisRoot(this, tv = false) {
                 CompositionLocalProvider(LocalNav provides remember { navigator }) {
-                    MobileApp()
+                    val s by graph.settings.state.collectAsStateWithLifecycle()
+                    if (s.onboarded) MobileApp() else com.alis.app.ui.Onboarding(tv = false) { graph.settings.setOnboarded() }
                 }
             }
         }

@@ -63,6 +63,13 @@ fun ServersScreen(wide: Boolean) {
     val nav = nav()
     val servers by g.servers.servers.collectAsStateWithLifecycle()
     val scanning by g.servers.scanning.collectAsStateWithLifecycle()
+    // Ekran açıkken sunucular 30 sn'de bir yeniden aranır (kapanıp açılan Akış kendiliğinden görünür)
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(30_000)
+            g.servers.scan()
+        }
+    }
     var selected by remember { mutableStateOf<String?>(null) }
     val sel = selected ?: g.settings.current.lastServer.takeIf { id -> servers.any { it.id == id } } ?: servers.firstOrNull { it.online }?.id
 
@@ -134,6 +141,7 @@ fun ServerCard(s: Server, selected: Boolean, onClick: () -> Unit) {
                     Text(s.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Text(s.base.substringAfter("://"), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
+                if (!s.online && s.isAkis) Text(stringResource(R.string.server_offline_hint), style = MaterialTheme.typography.bodySmall, color = cs.error)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
                     Badge(if (s.isAkis) stringResource(R.string.badge_akis) else s.model ?: "DLNA")
                     if (s.token != null) Badge(stringResource(R.string.badge_paired), Icons.Rounded.Link)

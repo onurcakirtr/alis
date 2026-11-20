@@ -36,6 +36,10 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material3.AlertDialog
@@ -111,6 +115,11 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
     androidx.activity.compose.BackHandler(enabled = selecting) { selecting = false; selected = emptySet() }
     var dialog by remember { mutableStateOf<String?>(null) } // mkdir | rename | delete
     var menuFor by remember { mutableStateOf<String?>(null) } // uzun basılan dosyanın yolu
+    var filtering by remember { mutableStateOf(false) }
+    var filter by remember { mutableStateOf("") }
+    val st by g.settings.state.collectAsStateWithLifecycle()
+    val marks = st.bookmarks[server.id].orEmpty()
+    androidx.activity.compose.BackHandler(enabled = filtering && !selecting) { filtering = false; filter = "" }
     var busy by remember { mutableStateOf(false) }
     var clipTick by remember { mutableStateOf(0) }
     val c: Capabilities? = caps.value
@@ -143,6 +152,10 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
     Column(Modifier.fillMaxSize()) {
         header(if (selecting) stringResource(R.string.selected_n, selected.size) else title) {
             if (!selecting) {
+                Act(Icons.Rounded.Search, R.string.fm_filter, tv) { filtering = !filtering; if (!filtering) filter = "" }
+                if (path.isNotEmpty()) Act(if (path in marks) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder, if (path in marks) R.string.fm_unbookmark else R.string.fm_bookmark, tv) {
+                    g.settings.toggleBookmark(server.id, path)
+                }
                 Act(Icons.Rounded.Refresh, R.string.refresh, tv) { load.reload() }
                 if (path.isNotEmpty() && canEdit) Act(Icons.Rounded.CreateNewFolder, R.string.fm_new_folder, tv) { dialog = "mkdir" }
                 if (path.isNotEmpty() && c?.upload == true && g.settings.current.on(Feature.SHARE_SEND) && !tv) Act(Icons.Rounded.Upload, R.string.fm_upload_here, tv) { upload.launch(arrayOf("*/*")) }
@@ -175,6 +188,30 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
             }
         }
         // Kırıntı yolu
+        // Ada göre süzme
+        if (filtering) {
+            androidx.compose.material3.OutlinedTextField(
+                filter, { filter = it },
+                leadingIcon = { Icon(Icons.Rounded.Search, null) },
+                trailingIcon = { if (filter.isNotEmpty()) androidx.compose.material3.IconButton(onClick = { filter = "" }) { Icon(Icons.Rounded.Close, stringResource(R.string.clear)) } },
+                placeholder = { Text(stringResource(R.string.fm_filter_hint)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+            )
+        }
+        // Yer imleri (depolama kökünde)
+        if (path.isEmpty() && marks.isNotEmpty()) {
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                marks.forEach { m ->
+                    AssistChip(
+                        onClick = { nav.push(Route.Files(server.id, m)) },
+                        label = { Text(m.trimEnd('/').substringAfterLast('/')) },
+                        leadingIcon = { Icon(Icons.Rounded.Bookmark, null, Modifier.size(16.dp)) },
+                        modifier = Modifier.focusRing(MaterialTheme.shapes.small),
+                    )
+                }
+            }
+        }
         val crumbs = dir?.crumbs.orEmpty()
         if (crumbs.isNotEmpty()) {
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -212,12 +249,13 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
         }
                 androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing = load.refreshing, onRefresh = { load.reload() }, modifier = Modifier.weight(1f)) {
         LoadView(load, server, Modifier.fillMaxSize()) { d ->
-            if (d.items.isEmpty()) {
-                MessageBox(Icons.Rounded.FolderOff, stringResource(R.string.folder_empty))
+            val shown = if (filter.isBlank()) d.items else d.items.filter { it.name.contains(filter.trim(), ignoreCase = true) }
+            if (shown.isEmpty()) {
+                MessageBox(Icons.Rounded.FolderOff, stringResource(if (filter.isBlank()) R.string.folder_empty else R.string.search_none))
                 return@LoadView
             }
             LazyColumn(state = rememberListMemory("f|${server.id}|$path"), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp), modifier = Modifier.fillMaxSize()) {
-                items(d.items, key = { it.path }) { f ->
+                items(shown, key = { it.path }) { f ->
                     val sel = f.path in selected
                     Box {
                     Surface(

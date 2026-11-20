@@ -2,6 +2,9 @@ package com.alis.app.mobile
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -124,6 +127,7 @@ fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: S
     var selected by remember { mutableStateOf(setOf<String>()) }
     androidx.activity.compose.BackHandler(enabled = selecting) { selecting = false; selected = emptySet() }
     var sortMenu by remember { mutableStateOf(false) }
+    var detailFor by remember { mutableStateOf<Item?>(null) }
     val queued = stringResource(R.string.download_queued)
 
     Column(modifier) {
@@ -187,16 +191,18 @@ fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: S
                 else Open.item(ctx, nav, server, it, items, folderId)
             }
             val onLong: (Item) -> Unit = { it ->
-                if (!selecting) {
-                    selecting = true
-                    selected = setOf(it.id)
-                } else if (server.isAkis) {
-                    nav.push(Route.Info(server.id, it.id, null, it.title))
-                }
+                // Seçim modunda seçime ekle / çıkar; değilse ayrıntı ve hızlı eylemler
+                if (selecting) selected = if (it.id in selected) selected - it.id else selected + it.id
+                else detailFor = it
             }
+            val resume = if (selecting) null else com.alis.app.ui.resumeTarget(items)
             Column {
-                if (playable.size > 1 && !selecting) {
-                    Row(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if ((playable.size > 1 || resume != null) && !selecting) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (resume != null) ToolChip(Icons.Rounded.History, stringResource(R.string.continue_from, resume.title)) {
+                            Open.item(ctx, nav, server, resume, items, folderId)
+                        }
+                        if (playable.size > 1) {
                         ToolChip(Icons.Rounded.PlayArrow, stringResource(R.string.play_all)) {
                             Audio.play(ctx, playable.map { Players.toMediaItem(Open.offline(ctx, it)) }, 0)
                             nav.push(Route.Music)
@@ -205,7 +211,11 @@ fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: S
                             Audio.play(ctx, playable.map { Players.toMediaItem(Open.offline(ctx, it)) }, (playable.indices).random(), shuffle = true)
                             nav.push(Route.Music)
                         }
+                        }
                     }
+                }
+                detailFor?.let { d ->
+                    com.alis.app.ui.ItemDetailDialog(server, d, items, folderId, onSelect = { selecting = true; selected = setOf(d.id) }) { detailFor = null }
                 }
                 if (s.view == "grid") {
                     LazyVerticalGrid(
