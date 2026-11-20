@@ -45,6 +45,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.Button
@@ -435,7 +436,7 @@ fun TvSearch(serverId: String?) {
             leadingIcon = { Icon(Icons.Rounded.Search, null) },
             trailingIcon = {
                 if (text.isNotEmpty()) androidx.compose.material3.IconButton(onClick = { text = "" }) {
-                    Icon(androidx.compose.material.icons.Icons.Rounded.Close, stringResource(R.string.clear))
+                    Icon(Icons.Rounded.Close, stringResource(R.string.clear))
                 }
             },
             placeholder = { Text(stringResource(R.string.search_hint)) },

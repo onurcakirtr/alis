@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.Icon
@@ -73,7 +74,7 @@ fun SearchScreen(serverId: String?) {
             leadingIcon = { Icon(Icons.Rounded.Search, null) },
             trailingIcon = {
                 if (text.isNotEmpty()) androidx.compose.material3.IconButton(onClick = { text = "" }) {
-                    Icon(androidx.compose.material.icons.Icons.Rounded.Close, stringResource(R.string.clear))
+                    Icon(Icons.Rounded.Close, stringResource(R.string.clear))
                 }
             },
             placeholder = { Text(stringResource(R.string.search_hint)) },
