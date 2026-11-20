@@ -30,5 +30,6 @@ dependencies {
     api("androidx.media3:media3-ui:1.5.1")
     api("androidx.media3:media3-datasource-okhttp:1.5.1")
     implementation("androidx.core:core-ktx:1.15.0")
+    implementation("com.google.guava:guava:33.3.1-android")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 }
