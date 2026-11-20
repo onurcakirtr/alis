@@ -545,7 +545,7 @@ private fun SidePanel(c: VideoController, which: String, tv: Boolean, onPanel: (
                 "speed" -> {
                     title(R.string.pl_speed)
                     val speeds = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 2.5f, 3f, 4f)
-                    itemsIndexed(speeds) { i, v -> Choice("${v}×", c.speed == v, if (v == 1f) Modifier.focusRequester(first) else Modifier) { c.setSpeed(v) } }
+                    itemsIndexed(speeds) { i, v -> Choice("${v}×", c.speed == v, if (v == 1f) Modifier.focusRequester(first) else Modifier) { c.changeSpeed(v) } }
                 }
                 "aspect" -> {
                     title(R.string.pl_aspect)

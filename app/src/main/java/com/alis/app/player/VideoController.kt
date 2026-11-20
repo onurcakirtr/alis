@@ -284,7 +284,7 @@ class VideoController(
         }
     }
 
-    fun setSpeed(v: Float) {
+    fun changeSpeed(v: Float) {
         speed = v
         player.playbackParameters = PlaybackParameters(v)
     }
