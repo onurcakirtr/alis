@@ -104,7 +104,7 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val client = remember(server) { g.servers.client(server) }
-    val caps = rememberLoad(server.id, server.token) { g.servers.cachedCaps(server.id) ?: g.servers.capabilities(server) }
+    val caps = rememberLoad(server.id, server.token) { g.servers.capabilities(server, refresh = true) }
     val load = rememberLoad(server.id, path) { client.files(path) }
     var selecting by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(setOf<String>()) }

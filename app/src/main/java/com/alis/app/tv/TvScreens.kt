@@ -423,6 +423,11 @@ fun TvSearch(serverId: String?) {
     val server = serverId?.let { g.servers.byId(it) }
     val field = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { field.requestFocus() } }
+    // Yazdıkça ara (klavyenin Ara tuşu da hemen arar)
+    LaunchedEffect(text) {
+        kotlinx.coroutines.delay(600)
+        query = text.trim()
+    }
     Column(Modifier.fillMaxSize()) {
         TvHeader(stringResource(R.string.search), server?.name ?: stringResource(R.string.search_all))
         OutlinedTextField(

@@ -116,10 +116,7 @@ class VideoController(
         override fun onTracksChanged(tracks: Tracks) {
             tracksVersion++
             // Ses çözülemiyorsa Akış'ın remux'una geç (bir kez)
-            if (!remux && server?.isAkis == true && TrackTools.audioUnsupported(tracks)) {
-                val audio = probeTracks.firstOrNull { !it.video && it.canTranscode } ?: probeTracks.firstOrNull { !it.video }
-                startRemux(player.currentPosition, audio?.index ?: 0, audio?.canTranscode ?: true)
-            }
+            if (!remux && trackable && TrackTools.audioUnsupported(tracks)) fallbackToRemux(player.currentPosition)
         }
 
         override fun onCues(cueGroup: CueGroup) {
@@ -134,8 +131,8 @@ class VideoController(
                 PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES, PlaybackException.ERROR_CODE_DECODING_FAILED,
                 PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
             )
-            if (!remux && decoder && server?.isAkis == true && !item.id.startsWith("offline:")) {
-                startRemux(positionMs, probeTracks.firstOrNull { !it.video }?.index ?: 0, true)
+            if (!remux && decoder && trackable) {
+                fallbackToRemux(positionMs)
             } else {
                 error = e.errorCodeName + (e.message?.let { "\n$it" } ?: "")
             }
@@ -227,18 +224,43 @@ class VideoController(
         if (pick != null) selectExternal(pick)
     }
 
+    /**
+     * Cihaz sesi çözemedi: Akış'ın anlık çevirisine geç. Ses parçası listesi (probe) henüz gelmediyse önce onu al;
+     * parça numarası Akış'ın verdiği numaradır (0 çoğu zaman videodur).
+     */
+    private fun fallbackToRemux(atMs: Long) {
+        if (remux) return
+        remux = true // ikinci kez tetiklenmesin
+        val s = server ?: return
+        val id = item.id
+        scope.launch {
+            if (probeTracks.isEmpty()) {
+                runCatching { g.servers.client(s).probe(id) }.getOrNull()?.let { (dur, tracks) ->
+                    probeDuration = dur
+                    probeTracks = tracks
+                }
+            }
+            if (id != item.id) return@launch
+            val audio = probeTracks.firstOrNull { !it.video && it.canTranscode } ?: probeTracks.firstOrNull { !it.video }
+            message = act.getString(com.alis.app.R.string.pl_converting)
+            startRemux(atMs, audio?.index ?: 1, audio?.canTranscode ?: true)
+        }
+    }
+
+    private var remuxTx = true
+
     private fun startRemux(atMs: Long, audio: Int, transcode: Boolean) {
         val s = server ?: return
         val c = g.servers.client(s)
         remux = true
         remuxBase = atMs.coerceAtLeast(0)
         remuxAudio = audio
+        remuxTx = transcode
         val url = c.remuxUrl(item.id, remuxBase / 1000.0, audio, transcode)
         val mi = MediaItem.Builder().setUri(url).setMimeType(MimeTypes.VIDEO_MP4).setMediaId(Players.mediaId(item)).build()
         player.setMediaItem(mi)
         player.prepare()
         player.play()
-        message = act.getString(com.alis.app.R.string.pl_converting)
     }
 
     // ---------------- Komutlar ----------------
@@ -248,12 +270,12 @@ class VideoController(
     fun seekTo(ms: Long) {
         val target = ms.coerceIn(0, (duration().takeIf { it > 0 } ?: Long.MAX_VALUE))
         embeddedHistory.clear()
-        if (remux) startRemux(target, remuxAudio, true) else player.seekTo(target)
+        if (remux) startRemux(target, remuxAudio, remuxTx) else player.seekTo(target)
     }
 
     fun seekBy(deltaMs: Long) = seekTo(position() + deltaMs)
 
-    fun hasNext() = shuffle && queue.size > 1 || index < queue.size - 1 || detail?.next != null && queue.size == 1
+    fun hasNext() = shuffle && queue.size > 1 || index < queue.size - 1 || detail?.next != null
     fun hasPrev() = index > 0
 
     fun next() {

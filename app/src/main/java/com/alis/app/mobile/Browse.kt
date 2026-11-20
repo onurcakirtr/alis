@@ -114,7 +114,7 @@ fun kindCode(k: Kind) = when (k) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: String? = null) {
+fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: String? = null, header: Boolean = true) {
     val g = graph()
     val nav = nav()
     val ctx = LocalContext.current
@@ -145,7 +145,7 @@ fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: S
                 }
                 ActionIcon(Icons.Rounded.Close, stringResource(R.string.cancel)) { selecting = false; selected = emptySet() }
             }
-        } else {
+        } else if (header) {
             TopBar(title ?: folder?.title?.ifEmpty { null } ?: server.name, server.name.takeIf { title != null }) {
                 ActionIcon(if (s.view == "grid") Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.GridView, stringResource(R.string.view_toggle)) {
                     g.settings.setView(if (s.view == "grid") "list" else "grid")

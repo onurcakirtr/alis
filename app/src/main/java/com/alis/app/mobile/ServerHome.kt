@@ -228,5 +228,5 @@ private fun CategoryCard(c: Category, onClick: () -> Unit) {
 /** Genel DLNA sunucusu: kök klasörü gezgin olarak açar. */
 @Composable
 private fun DlnaHome(server: Server) {
-    BrowseContent(server, "0", Modifier.fillMaxWidth())
+    BrowseContent(server, "0", Modifier.fillMaxWidth(), header = false)
 }

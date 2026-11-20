@@ -42,6 +42,8 @@ fun AlisRoot(activity: ComponentActivity, tv: Boolean, content: @Composable () -
         CompositionLocalProvider(
             LocalDeviceUi provides info,
             LocalDensity provides if (tv) Density(density.density * 1.0f, density.fontScale * 1.12f) else density,
+            // Kökte Surface yok: renk verilmemiş yazı ve ikonlar temanın ön plan rengini alsın (koyu temada siyah kalmasın)
+            androidx.compose.material3.LocalContentColor provides androidx.compose.material3.MaterialTheme.colorScheme.onBackground,
         ) {
             content()
         }
