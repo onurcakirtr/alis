@@ -3,6 +3,22 @@
 <resources>
     <string name="app_name">Alış</string>
     <string name="share_target">Alış ile gönder</string>
+    <string name="ch_updates">Güncellemeler</string>
+    <string name="upd_available">Alış %1$s çıktı</string>
+    <string name="upd_tap">Güncellemek için dokun</string>
+    <string name="upd_install">Güncelle</string>
+    <string name="upd_notes">Yenilikler</string>
+    <string name="upd_perm_note">Android kurulumu onaylamanı ister; ayarların korunur.</string>
+    <string name="upd_downloading">%1$s indiriliyor… %%%2$d</string>
+    <string name="upd_installing">Kurulum ekranı açılıyor…</string>
+    <string name="upd_check">Güncellemeleri denetle</string>
+    <string name="upd_checking">Denetleniyor…</string>
+    <string name="upd_latest">En yeni sürüm kurulu</string>
+    <string name="upd_failed">Güncelleme başarısız: %1$s</string>
+    <string name="upd_auto">Güncellemeleri otomatik denetle</string>
+    <string name="upd_auto_sub">Alış günde bir kez GitHub\'a son sürümü sorar. Başka hiçbir bilgi gönderilmez.</string>
+    <string name="upd_dev">Geliştirme sürümü — güncelleme denetimi kapalı</string>
+    <string name="upd_bad_sum">dosya sağlama toplamıyla eşleşmedi</string>
     <string name="ok">Tamam</string>
     <string name="cancel">İptal</string>
     <string name="back">Geri</string>

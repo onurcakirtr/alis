@@ -224,6 +224,8 @@ fun SettingsContent(columns: Int, contentPadding: PaddingValues = PaddingValues(
         ExpressiveCard {
             SettingRow(Icons.Rounded.Info, stringResource(R.string.app_name) + " " + BuildConfig.VERSION_NAME, stringResource(R.string.about_text))
             com.alis.core.ui.CardDivider()
+            AboutUpdate(s.on(Feature.UPDATE_CHECK)) { setFeature(Feature.UPDATE_CHECK, it) }
+            com.alis.core.ui.CardDivider()
             Text(stringResource(R.string.about_license), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

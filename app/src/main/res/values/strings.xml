@@ -3,6 +3,22 @@
 <resources>
     <string name="app_name">Alış</string>
     <string name="share_target">Send with Alış</string>
+    <string name="ch_updates">Updates</string>
+    <string name="upd_available">Alış %1$s is available</string>
+    <string name="upd_tap">Tap to update</string>
+    <string name="upd_install">Update</string>
+    <string name="upd_notes">What\'s new</string>
+    <string name="upd_perm_note">Android asks you to confirm the install; your settings are kept.</string>
+    <string name="upd_downloading">Downloading %1$s… %2$d%%</string>
+    <string name="upd_installing">Opening the installer…</string>
+    <string name="upd_check">Check for updates</string>
+    <string name="upd_checking">Checking…</string>
+    <string name="upd_latest">You\'re on the latest version</string>
+    <string name="upd_failed">Update failed: %1$s</string>
+    <string name="upd_auto">Check for updates automatically</string>
+    <string name="upd_auto_sub">Once a day Alış asks GitHub for the latest release. Nothing else is sent.</string>
+    <string name="upd_dev">Development build — update check is off</string>
+    <string name="upd_bad_sum">the file didn\'t match its checksum</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="back">Back</string>

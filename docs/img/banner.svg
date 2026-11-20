@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" width="1280" height="420">
+  <defs>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.3" fill="#ffffff" fill-opacity="0.09"/>
+    </pattern>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#d71921" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#d71921" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff6b6b"/>
+      <stop offset="1" stop-color="#5f27cd"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d71921" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#d71921" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#d71921" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="420" rx="28" fill="#000"/>
+  <rect width="1280" height="420" rx="28" fill="url(#dots)"/>
+
+  <!-- Sol: ad ve slogan -->
+  <g font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace">
+    <circle cx="92" cy="128" r="14" fill="#d71921"/>
+    <circle cx="92" cy="128" r="30" fill="url(#glow)"/>
+    <text x="128" y="150" fill="#fff" font-size="76" font-weight="700" letter-spacing="2">Alış</text>
+    <text x="80" y="214" fill="#ffffff" font-size="27" letter-spacing="1">The other side of Akış.</text>
+    <text x="80" y="252" fill="#a3a3a3" font-size="20" letter-spacing="1">phone · tablet · Google TV · remote-friendly</text>
+    <g font-size="15" letter-spacing="1.5">
+      <rect x="80" y="296" width="118" height="38" rx="19" fill="#1a1a1a" stroke="#333"/>
+      <text x="139" y="320" fill="#fff" text-anchor="middle">PLAYER</text>
+      <rect x="210" y="296" width="168" height="38" rx="19" fill="#1a1a1a" stroke="#333"/>
+      <text x="294" y="320" fill="#fff" text-anchor="middle">FILE MANAGER</text>
+      <rect x="390" y="296" width="148" height="38" rx="19" fill="#1a1a1a" stroke="#333"/>
+      <text x="464" y="320" fill="#fff" text-anchor="middle">DLNA / TV</text>
+    </g>
+  </g>
+
+  <!-- Sağ: telefon → TV ve dizüstü -->
+  <g transform="translate(738 52) scale(0.92)">
+    <!-- yayın dalgaları -->
+    <g fill="none" stroke="#d71921" stroke-linecap="round" transform="translate(235 0)">
+      <path d="M150 150 q 60 -70 120 0" stroke-width="4" stroke-opacity="0.9"/>
+      <path d="M130 130 q 80 -100 160 0" stroke-width="4" stroke-opacity="0.55"/>
+      <path d="M110 110 q 100 -130 200 0" stroke-width="4" stroke-opacity="0.25"/>
+    </g>
+    <!-- telefon -->
+    <rect x="160" y="150" width="100" height="190" rx="20" fill="#121212" stroke="#3c3c3c" stroke-width="3"/>
+    <rect x="172" y="168" width="76" height="140" rx="10" fill="url(#screen)"/>
+    <circle cx="210" cy="238" r="18" fill="#000" fill-opacity="0.35"/>
+    <path d="M204 228 v20 l16 -10 z" fill="#fff"/>
+    <rect x="195" y="320" width="30" height="5" rx="2.5" fill="#3c3c3c"/>
+    <!-- bağlantı çizgileri -->
+    <path d="M262 245 H 330" stroke="url(#fade)" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/>
+    <path d="M158 245 H 92" stroke="url(#fade)" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/>
+    <!-- TV -->
+    <rect x="335" y="160" width="220" height="140" rx="16" fill="#121212" stroke="#3c3c3c" stroke-width="3"/>
+    <rect x="347" y="172" width="196" height="116" rx="8" fill="url(#screen)"/>
+    <path d="M347 260 Q 400 228 450 252 T 543 240 V 288 H 347 Z" fill="#000" fill-opacity="0.35"/>
+    <circle cx="500" cy="205" r="13" fill="#fff" fill-opacity="0.6"/>
+    <rect x="420" y="304" width="50" height="8" rx="4" fill="#3c3c3c"/>
+    <!-- dizüstü -->
+    <rect x="-70" y="190" width="160" height="104" rx="10" fill="#121212" stroke="#3c3c3c" stroke-width="3"/>
+    <rect x="-60" y="200" width="140" height="84" rx="5" fill="#1a1a1a"/>
+    <rect x="-50" y="210" width="38" height="28" rx="4" fill="#ff6b6b"/>
+    <rect x="-6" y="210" width="38" height="28" rx="4" fill="#48dbfb"/>
+    <rect x="38" y="210" width="34" height="28" rx="4" fill="#1dd1a1"/>
+    <rect x="-50" y="246" width="38" height="28" rx="4" fill="#feca57"/>
+    <rect x="-6" y="246" width="38" height="28" rx="4" fill="#ff9ff3"/>
+    <rect x="38" y="246" width="34" height="28" rx="4" fill="#54a0ff"/>
+    <path d="M-86 296 H 106 l -10 10 H -76 Z" fill="#2a2a2a"/>
+  </g>
+</svg>

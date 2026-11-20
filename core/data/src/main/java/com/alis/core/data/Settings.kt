@@ -45,6 +45,8 @@ enum class Feature(val key: String, val default: Boolean, val sensitive: Boolean
     INBOX("inbox", true),
     ADMIN("admin", true),
     WATCH_NEXT("watchNext", true),
+    /** Günde bir kez GitHub'da yeni sürüm denetimi (Ayarlar → Hakkında) */
+    UPDATE_CHECK("updateCheck", true),
     PHONE_STATUS("phoneStatus", false, true),
     APPS("apps", false, true),
     LIVE("live", false, true),

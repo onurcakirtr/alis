@@ -85,3 +85,6 @@ jobs:
             Download **Alis-${{ steps.v.outputs.name }}.apk** below and open it on your phone, tablet or Google TV (Android 10+).
             Aşağıdaki **Alis-${{ steps.v.outputs.name }}.apk** dosyasını indirip telefon, tablet ya da Google TV’de aç (Android 10+).
 
+            Works with **[Akış](https://github.com/onurcakirtr/akis/releases/latest)** of the same version. · Aynı sürümdeki **Akış** ile çalışır.
+            If Play Protect warns: *More details → Install anyway*. · Play Protect uyarırsa: *Ayrıntılar → Yine de yükle*.
+

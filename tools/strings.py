@@ -12,6 +12,24 @@ S = {
     "app_name": ("Alış", "Alış"),
     "share_target": ("Send with Alış", "Alış ile gönder"),
 
+    # Otomatik güncelleme
+    "ch_updates": ("Updates", "Güncellemeler"),
+    "upd_available": ("Alış %1$s is available", "Alış %1$s çıktı"),
+    "upd_tap": ("Tap to update", "Güncellemek için dokun"),
+    "upd_install": ("Update", "Güncelle"),
+    "upd_notes": ("What's new", "Yenilikler"),
+    "upd_perm_note": ("Android asks you to confirm the install; your settings are kept.", "Android kurulumu onaylamanı ister; ayarların korunur."),
+    "upd_downloading": ("Downloading %1$s… %2$d%%", "%1$s indiriliyor… %%%2$d"),
+    "upd_installing": ("Opening the installer…", "Kurulum ekranı açılıyor…"),
+    "upd_check": ("Check for updates", "Güncellemeleri denetle"),
+    "upd_checking": ("Checking…", "Denetleniyor…"),
+    "upd_latest": ("You're on the latest version", "En yeni sürüm kurulu"),
+    "upd_failed": ("Update failed: %1$s", "Güncelleme başarısız: %1$s"),
+    "upd_auto": ("Check for updates automatically", "Güncellemeleri otomatik denetle"),
+    "upd_auto_sub": ("Once a day Alış asks GitHub for the latest release. Nothing else is sent.", "Alış günde bir kez GitHub'a son sürümü sorar. Başka hiçbir bilgi gönderilmez."),
+    "upd_dev": ("Development build — update check is off", "Geliştirme sürümü — güncelleme denetimi kapalı"),
+    "upd_bad_sum": ("the file didn't match its checksum", "dosya sağlama toplamıyla eşleşmedi"),
+
     # Genel
     "ok": ("OK", "Tamam"),
     "cancel": ("Cancel", "İptal"),

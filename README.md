@@ -1,10 +1,16 @@
 <div align="center">
 
-# Alış
+<img src="docs/img/banner.svg" alt="Alış — the other side of Akış" width="100%">
+
+<br>
 
 **The receiver for [Akış](https://github.com/onurcakirtr/akis)** — browse, play and manage your phone's media and files
 from another phone, a tablet or **Google TV**.
 
+[![Release](https://img.shields.io/github/v/release/onurcakirtr/alis?style=for-the-badge&color=d71921&labelColor=111&label=release)](https://github.com/onurcakirtr/alis/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/onurcakirtr/alis/build.yml?style=for-the-badge&labelColor=111&label=build)](https://github.com/onurcakirtr/alis/actions/workflows/build.yml)
+[![Downloads](https://img.shields.io/github/downloads/onurcakirtr/alis/total?style=for-the-badge&color=333&labelColor=111)](https://github.com/onurcakirtr/alis/releases)
+<br>
 ![Android](https://img.shields.io/badge/Android-10%2B-3ddc84?style=flat-square&logo=android&logoColor=white&labelColor=111)
 ![Google TV](https://img.shields.io/badge/Google%20TV-own%20interface-d71921?style=flat-square&labelColor=111)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.3-7f52ff?style=flat-square&logo=kotlin&logoColor=white&labelColor=111)
@@ -49,8 +55,17 @@ plus a full video player and a file manager.
 
 ## 🚀 Install
 
-Download **`Alis-x.y.z.apk`** from Releases and open it on the phone, tablet or TV (Android 10+).
+Download **`Alis-x.y.z.apk`** from [**Releases**](https://github.com/onurcakirtr/alis/releases/latest) and open it on the phone, tablet or TV (Android 10+).
 On Google TV: install with a file manager or `adb install Alis-x.y.z.apk`.
+Akış and Alış are released together with the same version number — use the same version on both sides.
+
+**Updates:** once a day Alış asks GitHub for the latest release and offers to install it (Android always asks you to confirm).
+Only that one question is sent; you can turn it off in *Settings → About*.
+
+> [!IMPORTANT]
+> **Google Play Protect** checks every app that isn't from the Play Store and may show a warning.
+> Alış is open source (GPL-3.0); every APK is built by GitHub Actions from this repository and signed with the same key.
+> If you see a warning, tap **More details → Install anyway**.
 
 You need **Akış 1.x with pairing** (this repository's version) for pairing and file management; everything else also works with older Akış.
 
@@ -119,8 +134,17 @@ yöneticisiyle sunar.
 
 ## 🚀 Kurulum
 
-Releases'tan **`Alis-x.y.z.apk`**'yı indirip telefon, tablet ya da TV'de aç (Android 10+).
+[**Releases**](https://github.com/onurcakirtr/alis/releases/latest) sayfasından **`Alis-x.y.z.apk`**'yı indirip telefon, tablet ya da TV'de aç (Android 10+).
 Google TV'de bir dosya yöneticisiyle ya da `adb install Alis-x.y.z.apk` ile kur.
+Akış ve Alış aynı sürüm numarasıyla birlikte çıkar — iki tarafta da aynı sürümü kullan.
+
+**Güncellemeler:** Alış günde bir kez GitHub'a son sürümü sorar ve kurmayı önerir (Android her seferinde onayını ister).
+Yalnızca bu soru gönderilir; *Ayarlar → Hakkında*'dan kapatılabilir.
+
+> [!IMPORTANT]
+> **Google Play Protect**, Play Store dışından gelen her uygulamayı kontrol eder ve uyarı gösterebilir.
+> Alış açık kaynaktır (GPL-3.0); her APK GitHub Actions tarafından bu depodan derlenir ve aynı anahtarla imzalanır.
+> Uyarı çıkarsa **Ayrıntılar → Yine de yükle**'ye dokun.
 
 Eşleştirme ve dosya yönetimi için **eşleştirme destekli Akış** (bu deponun sürümü) gerekir; geri kalan her şey eski Akış'la da çalışır.
 

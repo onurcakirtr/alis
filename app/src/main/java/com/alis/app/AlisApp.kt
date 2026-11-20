@@ -12,6 +12,7 @@ import com.alis.core.data.Graph
 import com.alis.core.data.GraphProvider
 import com.alis.core.data.Transfers
 import com.alis.core.data.TransfersProvider
+import kotlinx.coroutines.launch
 
 class AlisApp : Application(), GraphProvider, TransfersProvider, SingletonImageLoader.Factory {
     private lateinit var g: Graph
@@ -26,7 +27,12 @@ class AlisApp : Application(), GraphProvider, TransfersProvider, SingletonImageL
         nm.createNotificationChannel(NotificationChannel(CH_MIRROR, getString(R.string.ch_mirror), NotificationManager.IMPORTANCE_DEFAULT))
         nm.createNotificationChannel(NotificationChannel(CH_STATUS, getString(R.string.ch_status), NotificationManager.IMPORTANCE_LOW))
         nm.createNotificationChannel(NotificationChannel(CH_RENDERER, getString(R.string.ch_renderer), NotificationManager.IMPORTANCE_LOW))
+        nm.createNotificationChannel(NotificationChannel(CH_UPDATES, getString(R.string.ch_updates), NotificationManager.IMPORTANCE_DEFAULT))
         Background.sync(this)
+        // Günde en fazla bir kez GitHub'da yeni sürüm var mı (Ayarlar → Hakkında'dan kapatılabilir)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
+            Updater.check(this@AlisApp, force = false)
+        }
     }
 
     /** Küçük resimler de aynı istemciden: eşleştirme anahtarı ve çerezler gider. */
@@ -40,5 +46,6 @@ class AlisApp : Application(), GraphProvider, TransfersProvider, SingletonImageL
         const val CH_MIRROR = "mirror"
         const val CH_STATUS = "status"
         const val CH_RENDERER = "renderer"
+        const val CH_UPDATES = "updates"
     }
 }
