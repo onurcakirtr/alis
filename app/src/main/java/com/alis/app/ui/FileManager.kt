@@ -60,6 +60,29 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.InsertDriveFile
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.ClosedCaption
+import androidx.compose.material.icons.rounded.FolderZip
+import androidx.compose.material.icons.rounded.Android
+import androidx.compose.material.icons.rounded.PictureAsPdf
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.PhoneAndroid
+import androidx.compose.material.icons.rounded.SdCard
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.automirrored.rounded.ViewList
+import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -116,6 +139,8 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
     var dialog by remember { mutableStateOf<String?>(null) } // mkdir | rename | delete
     var menuFor by remember { mutableStateOf<String?>(null) } // uzun basılan dosyanın yolu
     var filtering by remember { mutableStateOf(false) }
+    var typeFilter by remember { mutableStateOf("all") }
+    var sortMenu by remember { mutableStateOf(false) }
     var filter by remember { mutableStateOf("") }
     val st by g.settings.state.collectAsStateWithLifecycle()
     val marks = st.bookmarks[server.id].orEmpty()
@@ -145,12 +170,41 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
         }
     }
 
+    val preparing = stringResource(R.string.fm_preparing)
+    val shareFailed = stringResource(R.string.apps_failed)
+    /** Dosyayı önbelleğe indirip Android'in paylaş menüsüne verir (WhatsApp, e-posta, Drive…). */
+    fun shareFile(f: FileEntry) {
+        busy = true
+        toast(ctx, preparing)
+        scope.launch {
+            val out = runCatching {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val dir = java.io.File(ctx.cacheDir, "share").apply { mkdirs(); listFiles()?.forEach { it.delete() } }
+                    val file = java.io.File(dir, f.name)
+                    g.net.client.newCall(okhttp3.Request.Builder().url(client.rawUrl(f.path)).build()).execute().use { r ->
+                        if (!r.isSuccessful) throw java.io.IOException("HTTP ${r.code}")
+                        file.outputStream().use { o -> r.body!!.byteStream().copyTo(o) }
+                    }
+                    file
+                }
+            }.getOrNull()
+            busy = false
+            if (out == null) return@launch toast(ctx, shareFailed)
+            val uri = androidx.core.content.FileProvider.getUriForFile(ctx, ctx.packageName + ".files", out)
+            val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType(mimeOf(f.name) ?: "*/*")
+                .putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            runCatching { ctx.startActivity(android.content.Intent.createChooser(send, f.name).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        }
+    }
+
     val dir = load.value
     val entries = dir?.items.orEmpty()
     val title = dir?.crumbs?.lastOrNull()?.title ?: stringResource(R.string.tool_files)
 
     Column(Modifier.fillMaxSize()) {
-        header(if (selecting) stringResource(R.string.selected_n, selected.size) else title) {
+        val selSize = entries.filter { it.path in selected && !it.dir }.sumOf { it.size }
+        header(if (selecting) stringResource(R.string.selected_n, selected.size) + if (selSize > 0) " · " + formatBytes(selSize) else "" else title) {
             if (!selecting) {
                 Act(Icons.Rounded.Search, R.string.fm_filter, tv) { filtering = !filtering; if (!filtering) filter = "" }
                 if (path.isNotEmpty()) Act(if (path in marks) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder, if (path in marks) R.string.fm_unbookmark else R.string.fm_bookmark, tv) {
@@ -247,53 +301,130 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
                 }
             }
         }
-                androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing = load.refreshing, onRefresh = { load.reload() }, modifier = Modifier.weight(1f)) {
+        // Tür süzgeci, sıralama ve görünüm (depolama kökünde gerekmez)
+        if (path.isNotEmpty() && entries.isNotEmpty() && !selecting) {
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FILE_TYPES.forEach { (key, label) ->
+                    if (key == "all" || entries.any { matchesType(it, key) }) {
+                        androidx.compose.material3.FilterChip(
+                            typeFilter == key, { typeFilter = key }, label = { Text(stringResource(label)) },
+                            modifier = Modifier.focusRing(MaterialTheme.shapes.small),
+                        )
+                    }
+                }
+                Box {
+                    Act(Icons.AutoMirrored.Rounded.Sort, R.string.sort, tv) { sortMenu = true }
+                    androidx.compose.material3.DropdownMenu(sortMenu, { sortMenu = false }) {
+                        listOf("name" to R.string.sort_name, "date" to R.string.sort_date, "size" to R.string.sort_size, "type" to R.string.sort_type).forEach { (k, l) ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                { Text(stringResource(l) + if (st.sort == k) (if (st.sortDesc) " ↓" else " ↑") else "") },
+                                { g.settings.setSort(k, if (st.sort == k) !st.sortDesc else false); sortMenu = false },
+                            )
+                        }
+                    }
+                }
+                if (!tv) Act(if (st.view == "grid") Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.GridView, R.string.view_toggle, tv) {
+                    g.settings.setView(if (st.view == "grid") "list" else "grid")
+                }
+            }
+        }
+
+        // Uzun basma menüsü (liste ve ızgara ortak)
+        val fileMenu: @Composable (FileEntry, List<FileEntry>) -> Unit = { f, all ->
+            androidx.compose.material3.DropdownMenu(expanded = menuFor == f.path, onDismissRequest = { menuFor = null }) {
+                MenuEntry(R.string.open, Icons.AutoMirrored.Rounded.OpenInNew) { menuFor = null; Open.file(ctx, nav, server, f, all, path) }
+                MenuEntry(R.string.select, Icons.Rounded.Checklist) { menuFor = null; selecting = true; selected = setOf(f.path) }
+                if (!f.dir) {
+                    MenuEntry(R.string.fm_share, Icons.Rounded.Share) { menuFor = null; shareFile(f) }
+                    MenuEntry(R.string.fm_open_with, Icons.Rounded.Apps) { menuFor = null; Open.external(ctx, client.rawUrl(f.path), mimeOf(f.name)) }
+                }
+                if (g.settings.current.on(Feature.DOWNLOADS)) MenuEntry(R.string.download, Icons.Rounded.Download) {
+                    menuFor = null; downloadFiles(g, server, listOf(f)); toast(ctx, queued)
+                }
+                if (canEdit) {
+                    MenuEntry(R.string.fm_cut, Icons.Rounded.ContentCut) {
+                        menuFor = null; FileClipboard.serverId = server.id; FileClipboard.paths = listOf(f.path); FileClipboard.cut = true; clipTick++
+                    }
+                    MenuEntry(R.string.fm_copy, Icons.Rounded.ContentCopy) {
+                        menuFor = null; FileClipboard.serverId = server.id; FileClipboard.paths = listOf(f.path); FileClipboard.cut = false; clipTick++
+                    }
+                    MenuEntry(R.string.rename, Icons.Rounded.DriveFileRenameOutline) { menuFor = null; selected = setOf(f.path); dialog = "rename" }
+                    MenuEntry(R.string.delete, Icons.Rounded.DeleteOutline) { menuFor = null; selected = setOf(f.path); dialog = "delete" }
+                }
+                MenuEntry(R.string.properties, Icons.Rounded.Info) { menuFor = null; nav.push(Route.Info(server.id, null, f.path, f.name)) }
+            }
+        }
+
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing = load.refreshing, onRefresh = { load.reload() }, modifier = Modifier.weight(1f)) {
         LoadView(load, server, Modifier.fillMaxSize()) { d ->
-            val shown = if (filter.isBlank()) d.items else d.items.filter { it.name.contains(filter.trim(), ignoreCase = true) }
+            val shown = sortFiles(
+                d.items.filter { matchesType(it, typeFilter) && (filter.isBlank() || it.name.contains(filter.trim(), ignoreCase = true)) },
+                st.sort, st.sortDesc,
+            )
             if (shown.isEmpty()) {
-                MessageBox(Icons.Rounded.FolderOff, stringResource(if (filter.isBlank()) R.string.folder_empty else R.string.search_none))
+                MessageBox(Icons.Rounded.FolderOff, stringResource(if (filter.isBlank() && typeFilter == "all") R.string.folder_empty else R.string.search_none))
                 return@LoadView
             }
-            LazyColumn(state = rememberListMemory("f|${server.id}|$path"), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp), modifier = Modifier.fillMaxSize()) {
-                items(shown, key = { it.path }) { f ->
-                    val sel = f.path in selected
-                    Box {
-                    Surface(
-                        color = if (sel) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth().focusRing(MaterialTheme.shapes.medium, 1.01f).combinedClickable(
-                            onClick = {
-                                if (selecting) selected = if (sel) selected - f.path else selected + f.path
-                                else Open.file(ctx, nav, server, f, d.items, path)
-                            },
-                            onLongClick = {
-                                if (path.isEmpty()) return@combinedClickable
-                                // Seçim modundaysa seçime ekle, değilse kısayol menüsü
-                                if (selecting) selected = selected + f.path else menuFor = f.path
-                            },
-                        ),
-                    ) {
-                        FileRow(client, f, c?.thumbs == true, sel, tv)
-                    }
-                    androidx.compose.material3.DropdownMenu(expanded = menuFor == f.path, onDismissRequest = { menuFor = null }) {
-                        MenuEntry(R.string.open, Icons.Rounded.Info) { menuFor = null;  Open.file(ctx, nav, server, f, d.items, path) }
-                        MenuEntry(R.string.select, Icons.Rounded.Checklist) { menuFor = null;  selecting = true; selected = setOf(f.path) }
-                        if (g.settings.current.on(Feature.DOWNLOADS)) MenuEntry(R.string.download, Icons.Rounded.Download) { menuFor = null; 
-                            downloadFiles(g, server, listOf(f)); toast(ctx, queued)
-                        }
-                        if (canEdit) {
-                            MenuEntry(R.string.fm_cut, Icons.Rounded.ContentCut) { menuFor = null; 
-                                FileClipboard.serverId = server.id; FileClipboard.paths = listOf(f.path); FileClipboard.cut = true; clipTick++
+            val onTap: (FileEntry) -> Unit = { f ->
+                if (selecting) selected = if (f.path in selected) selected - f.path else selected + f.path
+                else Open.file(ctx, nav, server, f, shown, path)
+            }
+            val onLong: (FileEntry) -> Unit = { f ->
+                if (path.isNotEmpty()) {
+                    if (selecting) selected = if (f.path in selected) selected - f.path else selected + f.path else menuFor = f.path
+                }
+            }
+            when {
+                // Depolama kökleri: büyük kartlar
+                path.isEmpty() -> LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
+                    items(shown, key = { it.path }) { f ->
+                        ExpressiveCard(onClick = { onTap(f) }, padding = 16.dp) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                com.alis.core.ui.IconBadge(if (f.name.contains("SD", true) || f.path.count { it == '/' } <= 2 && !f.path.contains("emulated")) Icons.Rounded.SdCard else Icons.Rounded.PhoneAndroid, size = 52.dp)
+                                Spacer(Modifier.width(14.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(f.name, style = MaterialTheme.typography.titleMedium)
+                                    Text(f.path, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                                }
                             }
-                            MenuEntry(R.string.fm_copy, Icons.Rounded.ContentCopy) { menuFor = null; 
-                                FileClipboard.serverId = server.id; FileClipboard.paths = listOf(f.path); FileClipboard.cut = false; clipTick++
-                            }
-                            MenuEntry(R.string.rename, Icons.Rounded.DriveFileRenameOutline) { menuFor = null;  selected = setOf(f.path); dialog = "rename" }
-                            MenuEntry(R.string.delete, Icons.Rounded.DeleteOutline) { menuFor = null;  selected = setOf(f.path); dialog = "delete" }
                         }
-                        MenuEntry(R.string.properties, Icons.Rounded.Info) { menuFor = null;  nav.push(Route.Info(server.id, null, f.path, f.name)) }
                     }
+                }
+                st.view == "grid" && !tv -> LazyVerticalGrid(
+                    columns = GridCells.Adaptive(112.dp),
+                    state = rememberGridMemory("fg|${server.id}|$path"),
+                    contentPadding = PaddingValues(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(shown, key = { it.path }) { f ->
+                        Box {
+                            FileCard(client, f, c?.thumbs == true, f.path in selected, Modifier.focusRing(MaterialTheme.shapes.medium).combinedClickable(onClick = { onTap(f) }, onLongClick = { onLong(f) }))
+                            fileMenu(f, shown)
+                        }
                     }
+                    item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) { FolderSummary(shown) }
+                }
+                else -> LazyColumn(state = rememberListMemory("f|${server.id}|$path"), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp), modifier = Modifier.fillMaxSize()) {
+                    items(shown, key = { it.path }) { f ->
+                        val sel = f.path in selected
+                        Box {
+                            Surface(
+                                color = if (sel) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                                shape = MaterialTheme.shapes.medium,
+                                modifier = Modifier.fillMaxWidth().focusRing(MaterialTheme.shapes.medium, 1.01f)
+                                    .combinedClickable(onClick = { onTap(f) }, onLongClick = { onLong(f) }),
+                            ) {
+                                FileRow(client, f, c?.thumbs == true, sel, tv)
+                            }
+                            fileMenu(f, shown)
+                        }
+                    }
+                    item { FolderSummary(shown) }
                 }
             }
         }
@@ -358,7 +489,7 @@ private fun FileRow(client: com.alis.core.akis.AkisClient, f: FileEntry, thumbs:
     Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = if (tv) 10.dp else 7.dp), verticalAlignment = Alignment.CenterVertically) {
         val showThumb = !f.dir && thumbs && (f.kind == Kind.IMAGE || f.kind == Kind.VIDEO || f.ext == "apk" || f.ext == "pdf")
         Box(Modifier.size(if (tv) 56.dp else 46.dp).clip(MaterialTheme.shapes.small)) {
-            Thumb(if (showThumb) client.fileThumbUrl(f.path) else null, if (f.dir) kindIcon(Kind.FOLDER) else kindIcon(f.kind), Modifier.fillMaxSize(), 24.dp)
+            Thumb(if (showThumb) client.fileThumbUrl(f.path) else null, fileIcon(f), Modifier.fillMaxSize(), 24.dp)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -419,5 +550,92 @@ private fun MenuEntry(label: Int, icon: ImageVector, onClick: () -> Unit) {
         text = { Text(stringResource(label)) },
         leadingIcon = { Icon(icon, null) },
         onClick = onClick,
+    )
+}
+
+private val FILE_TYPES = listOf(
+    "all" to R.string.ft_all, "image" to R.string.ft_images, "video" to R.string.ft_videos, "audio" to R.string.ft_music,
+    "doc" to R.string.ft_docs, "archive" to R.string.ft_archives, "apk" to R.string.ft_apps,
+)
+
+private val DOC_EXT = setOf("pdf", "doc", "docx", "odt", "rtf", "txt", "md", "xls", "xlsx", "ods", "csv", "ppt", "pptx", "odp", "epub", "json", "xml", "html", "htm")
+private val ARCHIVE_EXT = setOf("zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz", "apks", "xapk")
+private val CODE_EXT = setOf("kt", "java", "js", "ts", "py", "c", "cpp", "h", "css", "sh", "bat", "gradle", "kts", "go", "rs", "swift", "sql", "yml", "yaml", "toml", "ini", "conf", "properties")
+private val SUB_EXT = setOf("srt", "vtt", "ass", "ssa", "sub")
+
+/** Klasörler her türde görünür (içine girilebilsin). */
+private fun matchesType(f: FileEntry, type: String): Boolean {
+    if (type == "all" || f.dir) return true
+    val e = f.ext.lowercase()
+    return when (type) {
+        "image" -> f.kind == Kind.IMAGE
+        "video" -> f.kind == Kind.VIDEO
+        "audio" -> f.kind == Kind.AUDIO
+        "doc" -> e in DOC_EXT
+        "archive" -> e in ARCHIVE_EXT
+        "apk" -> e == "apk"
+        else -> true
+    }
+}
+
+/** Klasörler önce; ad / tarih / boyut / tür. */
+private fun sortFiles(list: List<FileEntry>, by: String, desc: Boolean): List<FileEntry> {
+    val c = when (by) {
+        "date" -> compareBy<FileEntry> { it.modified }
+        "size" -> compareBy { it.size }
+        "type" -> compareBy<FileEntry> { it.ext.lowercase() }.thenBy { it.name.lowercase() }
+        else -> compareBy { it.name.lowercase() }
+    }
+    val sorted = list.sortedWith(if (desc) c.reversed() else c)
+    return sorted.filter { it.dir } + sorted.filter { !it.dir }
+}
+
+private fun mimeOf(name: String): String? =
+    android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase())
+
+/** Türe göre simge (PDF, arşiv, APK, belge, kod, altyazı…). */
+fun fileIcon(f: FileEntry): ImageVector {
+    if (f.dir) return Icons.Rounded.Folder
+    val e = f.ext.lowercase()
+    return when {
+        f.kind != null && f.kind != Kind.OTHER -> kindIcon(f.kind)
+        e == "pdf" -> Icons.Rounded.PictureAsPdf
+        e == "apk" -> Icons.Rounded.Android
+        e in ARCHIVE_EXT -> Icons.Rounded.FolderZip
+        e in SUB_EXT -> Icons.Rounded.ClosedCaption
+        e in CODE_EXT -> Icons.Rounded.Code
+        e in DOC_EXT -> Icons.Rounded.Description
+        else -> Icons.Rounded.InsertDriveFile
+    }
+}
+
+/** Izgara kartı: büyük küçük resim ya da tür simgesi, altta ad ve boyut. */
+@Composable
+private fun FileCard(client: com.alis.core.akis.AkisClient, f: FileEntry, thumbs: Boolean, selected: Boolean, modifier: Modifier) {
+    val cs = MaterialTheme.colorScheme
+    Column(modifier.padding(4.dp)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(MaterialTheme.shapes.medium).background(cs.surfaceContainerHigh)) {
+            val showThumb = !f.dir && thumbs && (f.kind == Kind.IMAGE || f.kind == Kind.VIDEO || f.ext == "apk" || f.ext == "pdf")
+            Thumb(if (showThumb) client.fileThumbUrl(f.path) else null, fileIcon(f), Modifier.fillMaxSize(), 40.dp)
+            if (selected) Box(Modifier.fillMaxSize().background(cs.primary.copy(alpha = 0.4f)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.CheckCircle, null, tint = cs.onPrimary, modifier = Modifier.size(36.dp))
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(f.name, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = if (selected) FontWeight.SemiBold else null)
+        if (!f.dir) Text(formatBytes(f.size), style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+    }
+}
+
+/** Klasörün altında özet: kaç klasör, kaç dosya, toplam boyut. */
+@Composable
+private fun FolderSummary(list: List<FileEntry>) {
+    val dirs = list.count { it.dir }
+    val files = list.filter { !it.dir }
+    Text(
+        stringResource(R.string.fm_summary, dirs, files.size, formatBytes(files.sumOf { it.size })),
+        style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
     )
 }
