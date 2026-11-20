@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.first
 import com.alis.app.R
 import com.alis.app.ui.DocScreen
 import com.alis.app.ui.InfoScreen
@@ -70,6 +71,11 @@ import com.alis.core.ui.focusRing
 import com.alis.core.ui.theme.LocalAppTheme
 import com.alis.core.ui.themedBackdrop
 
+/** Son sunucuya açılışta yalnızca bir kez gidilir (dönüp sunucu listesine bakınca tekrar açmasın). */
+private object OpenedLast {
+    var done = false
+}
+
 private data class Tab(val route: Route, val label: Int, val icon: ImageVector)
 
 private val tabs = listOf(
@@ -91,6 +97,13 @@ fun MobileApp() {
     val notifPerm = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { }
     LaunchedEffect(Unit) {
         g.servers.scan()
+        // Son kullanılan sunucuyu doğrudan aç (tablette liste–ayrıntı zaten seçiyor)
+        val s = g.settings.current
+        if (s.openLast && !wide && !OpenedLast.done && s.lastServer.isNotEmpty() && nav.stack.size == 1 && nav.top == Route.Servers) {
+            OpenedLast.done = true
+            val found = kotlinx.coroutines.withTimeoutOrNull(4000) { g.servers.servers.first { list -> list.any { it.id == s.lastServer } } }
+            if (found != null && nav.stack.size == 1) nav.push(Route.Home(s.lastServer))
+        }
         // İndirme / yükleme ilerlemesi ve müzik kontrolleri bildirimde görünsün (Android 13+)
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
             androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED

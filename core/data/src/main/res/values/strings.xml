@@ -3,4 +3,5 @@
     <string name="ch_transfers">Downloads and uploads</string>
     <string name="tr_downloading">Downloading</string>
     <string name="tr_uploading">Uploading</string>
+    <string name="tr_done_tap">Downloaded · tap to open</string>
 </resources>

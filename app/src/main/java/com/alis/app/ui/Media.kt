@@ -38,6 +38,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -163,7 +165,20 @@ fun MiniPlayer(now: Audio.Now, modifier: Modifier = Modifier, onOpen: () -> Unit
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
         tonalElevation = 4.dp,
         shadowElevation = 6.dp,
-        modifier = modifier,
+        modifier = modifier.pointerInput(Unit) {
+            // Sola kaydır: sonraki, sağa kaydır: önceki şarkı
+            var acc = 0f
+            detectHorizontalDragGestures(
+                onDragStart = { acc = 0f },
+                onDragEnd = {
+                    val pl = Audio.player.value
+                    if (acc < -120f) pl?.seekToNextMediaItem() else if (acc > 120f) pl?.seekToPreviousMediaItem()
+                },
+            ) { change, d ->
+                change.consume()
+                acc += d
+            }
+        },
     ) {
         Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Box(Modifier.size(44.dp).clip(MaterialTheme.shapes.small)) {

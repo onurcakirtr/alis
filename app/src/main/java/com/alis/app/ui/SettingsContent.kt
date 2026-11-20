@@ -86,7 +86,6 @@ private val FEATURES = listOf(
     FeatureInfo(Feature.QR_ADD, Icons.Rounded.QrCodeScanner, R.string.f_qr, R.string.f_qr_sub),
     FeatureInfo(Feature.MERGED_LIBRARY, Icons.Rounded.TravelExplore, R.string.f_merged, R.string.f_merged_sub),
     FeatureInfo(Feature.RESUME_SYNC, Icons.Rounded.History, R.string.f_resume, R.string.f_resume_sub),
-    FeatureInfo(Feature.AUTOPLAY_NEXT, Icons.Rounded.SkipNext, R.string.f_next, R.string.f_next_sub),
     FeatureInfo(Feature.SUBTITLES, Icons.Rounded.ClosedCaption, R.string.f_subs, R.string.f_subs_sub),
     FeatureInfo(Feature.BACKGROUND_AUDIO, Icons.Rounded.LibraryMusic, R.string.f_bg_audio, R.string.f_bg_audio_sub),
     FeatureInfo(Feature.PIP, Icons.Rounded.PictureInPicture, R.string.f_pip, R.string.f_pip_sub),
@@ -157,6 +156,8 @@ fun SettingsContent(columns: Int, contentPadding: PaddingValues = PaddingValues(
                 s.uiMode,
             ) { g.settings.setUiMode(it) }
             Text(stringResource(R.string.set_ui_mode_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            com.alis.core.ui.CardDivider()
+            FeatureRow(Icons.Rounded.Dns, stringResource(R.string.set_open_last), stringResource(R.string.set_open_last_sub), s.openLast) { g.settings.setOpenLast(it) }
         }
     }
     val player: @Composable () -> Unit = {
@@ -168,6 +169,14 @@ fun SettingsContent(columns: Int, contentPadding: PaddingValues = PaddingValues(
                 Text(stringResource(R.string.set_sub_bg), Modifier.weight(1f))
                 Switch(s.subBackground, { g.settings.setSubBackground(it) }, modifier = Modifier.focusRing(MaterialTheme.shapes.extraLarge))
             }
+            com.alis.core.ui.CardDivider()
+            Text(stringResource(R.string.set_autoplay), style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(6.dp))
+            Segmented(
+                listOf("off" to stringResource(R.string.autoplay_off), "now" to stringResource(R.string.autoplay_now), "countdown" to stringResource(R.string.autoplay_countdown)),
+                s.autoplay,
+            ) { g.settings.setAutoplay(it) }
+            Text(stringResource(R.string.set_autoplay_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             com.alis.core.ui.CardDivider()
             Text(stringResource(R.string.set_seek_step), style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.height(6.dp))

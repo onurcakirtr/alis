@@ -74,6 +74,10 @@ data class AppSettings(
     val rendererName: String = "",
     /** Telefonu TV arayüzüyle (ya da tersi) açmaya zorla: "auto" | "tv" | "mobile" */
     val uiMode: String = "auto",
+    /** Video bitince: "off" kapalı | "now" hemen | "countdown" 5 sn geri sayımla (YouTube gibi) */
+    val autoplay: String = "countdown",
+    /** Açılışta son kullanılan sunucuyu doğrudan aç */
+    val openLast: Boolean = true,
 ) {
     fun on(f: Feature): Boolean = features[f] ?: f.default
 }
@@ -103,6 +107,8 @@ class SettingsStore(private val ctx: Context) {
         lastServer = p[K_LAST] ?: "",
         rendererName = p[K_RENDERER] ?: "",
         uiMode = p[K_UI] ?: "auto",
+        autoplay = p[K_AUTOPLAY] ?: (if (p[booleanPreferencesKey("f_autoplayNext")] == false) "off" else "countdown"),
+        openLast = p[K_OPEN_LAST] ?: true,
     )
 
     val state: StateFlow<AppSettings> = ds.data.map { read(it) }
@@ -126,6 +132,8 @@ class SettingsStore(private val ctx: Context) {
     fun setLastServer(id: String) = scope.launch { ds.edit { it[K_LAST] = id } }
     fun setRendererName(v: String) = scope.launch { ds.edit { it[K_RENDERER] = v.trim().take(40) } }
     fun setUiMode(v: String) = scope.launch { ds.edit { it[K_UI] = v } }
+    fun setAutoplay(v: String) = scope.launch { ds.edit { it[K_AUTOPLAY] = v } }
+    fun setOpenLast(v: Boolean) = scope.launch { ds.edit { it[K_OPEN_LAST] = v } }
 
     private companion object {
         val K_THEME = stringPreferencesKey("theme")
@@ -144,5 +152,7 @@ class SettingsStore(private val ctx: Context) {
         val K_LAST = stringPreferencesKey("lastServer")
         val K_RENDERER = stringPreferencesKey("rendererName")
         val K_UI = stringPreferencesKey("uiMode")
+        val K_AUTOPLAY = stringPreferencesKey("autoplay")
+        val K_OPEN_LAST = booleanPreferencesKey("openLast")
     }
 }

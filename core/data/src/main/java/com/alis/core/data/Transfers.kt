@@ -315,12 +315,33 @@ class TransferWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
         return info(inputData.getString("id")?.let { tr.get(it) })
     }
 
+    /** "İndirildi" bildirimi; dokununca dosya açılır. */
+    private fun doneNotification(t: Transfer) {
+        val uri = t.target?.let { android.net.Uri.parse(it) } ?: return
+        val view = android.content.Intent(android.content.Intent.ACTION_VIEW)
+            .setDataAndType(uri, t.mime ?: applicationContext.contentResolver.getType(uri) ?: "*/*")
+            .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        val pi = android.app.PendingIntent.getActivity(
+            applicationContext, t.id.hashCode(), android.content.Intent.createChooser(view, null),
+            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val n = NotificationCompat.Builder(applicationContext, Transfers.CHANNEL)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setContentTitle(t.name)
+            .setContentText(applicationContext.getString(R.string.tr_done_tap))
+            .setAutoCancel(true)
+            .setContentIntent(pi)
+            .build()
+        runCatching { applicationContext.getSystemService(android.app.NotificationManager::class.java).notify(nid + 1, n) }
+    }
+
     override suspend fun doWork(): Result {
         val id = inputData.getString("id") ?: return Result.failure()
         val tr = (applicationContext as TransfersProvider).transfers
         Transfers.createChannel(applicationContext)
         runCatching { setForeground(info(tr.get(id))) }
         val ok = tr.run(id) { t -> runCatching { setForeground(info(t)) } }
+        if (ok) tr.get(id)?.let { t -> if (!t.upload) doneNotification(t) }
         return when {
             ok -> Result.success()
             runAttemptCount < 3 && tr.get(id)?.error?.startsWith("HTTP 4") != true -> {

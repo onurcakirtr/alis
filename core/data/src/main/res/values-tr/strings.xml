@@ -3,4 +3,5 @@
     <string name="ch_transfers">İndirmeler ve yüklemeler</string>
     <string name="tr_downloading">İndiriliyor</string>
     <string name="tr_uploading">Yükleniyor</string>
+    <string name="tr_done_tap">İndirildi · açmak için dokun</string>
 </resources>

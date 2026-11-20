@@ -24,7 +24,7 @@ sealed interface Load<out T> {
     data class Fail(val error: Throwable) : Load<Nothing>
 }
 
-class LoadHandle<T>(val state: Load<T>, val reload: () -> Unit) {
+class LoadHandle<T>(val state: Load<T>, val reload: () -> Unit, val refreshing: Boolean = false) {
     val value: T? get() = (state as? Load.Ok<T>)?.value
 }
 
@@ -36,17 +36,24 @@ class LoadHandle<T>(val state: Load<T>, val reload: () -> Unit) {
 fun <T> rememberLoad(vararg keys: Any?, block: suspend () -> T): LoadHandle<T> {
     var tick by remember { mutableIntStateOf(0) }
     var state by remember(*keys) { mutableStateOf<Load<T>>(Load.Loading) }
+    var busy by remember { mutableStateOf(false) }
     LaunchedEffect(*keys, tick) {
+        busy = true
         if (state !is Load.Ok) state = Load.Loading
-        state = try {
-            Load.Ok(block())
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Throwable) {
-            Load.Fail(e)
+        try {
+            state = try {
+                Load.Ok(block())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Load.Fail(e)
+            }
+        } finally {
+            // aynı veri geri gelse de (durum değişmese de) yenileniyor göstergesi kapanır
+            busy = false
         }
     }
-    return LoadHandle(state) { tick++ }
+    return LoadHandle(state, { tick++ }, busy && state is Load.Ok)
 }
 
 @Composable

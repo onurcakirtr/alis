@@ -56,6 +56,7 @@ import com.alis.core.ui.MessageBox
 import com.alis.core.ui.SectionTitle
 
 /** Sunucular: keşfedilen ve kayıtlı Akış / DLNA sunucuları. Tablette sağda seçili sunucunun ana sayfası. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ServersScreen(wide: Boolean) {
     val g = graph()
@@ -77,7 +78,8 @@ fun ServersScreen(wide: Boolean) {
                     nav.push(Route.AddServer)
                 }
             } else {
-                LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing = scanning, onRefresh = { g.servers.scan() }, modifier = Modifier.fillMaxSize()) {
+                LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize()) {
                     val akis = servers.filter { it.isAkis }
                     val other = servers.filter { !it.isAkis }
                     if (akis.isNotEmpty()) item { SectionTitle(stringResource(R.string.servers_akis)) }
@@ -94,6 +96,7 @@ fun ServersScreen(wide: Boolean) {
                             if (wide) selected = s.id else nav.push(Route.Home(s.id))
                         }
                     }
+                }
                 }
             }
         }

@@ -96,7 +96,7 @@ object FileClipboard {
  * izin yoksa gezinme, indirme ve yükleme yine çalışır.
  * @param tv TV'de daha büyük satırlar ve yazılı eylem düğmeleri
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (title: String, actions: @Composable () -> Unit) -> Unit) {
     val g = graph()
@@ -110,6 +110,7 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
     var selected by remember { mutableStateOf(setOf<String>()) }
     androidx.activity.compose.BackHandler(enabled = selecting) { selecting = false; selected = emptySet() }
     var dialog by remember { mutableStateOf<String?>(null) } // mkdir | rename | delete
+    var menuFor by remember { mutableStateOf<String?>(null) } // uzun basılan dosyanın yolu
     var busy by remember { mutableStateOf(false) }
     var clipTick by remember { mutableStateOf(0) }
     val c: Capabilities? = caps.value
@@ -209,14 +210,16 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
                 }
             }
         }
-        LoadView(load, server, Modifier.weight(1f)) { d ->
+                androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing = load.refreshing, onRefresh = { load.reload() }, modifier = Modifier.weight(1f)) {
+        LoadView(load, server, Modifier.fillMaxSize()) { d ->
             if (d.items.isEmpty()) {
                 MessageBox(Icons.Rounded.FolderOff, stringResource(R.string.folder_empty))
                 return@LoadView
             }
-            LazyColumn(contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp), modifier = Modifier.fillMaxSize()) {
+            LazyColumn(state = rememberListMemory("f|${server.id}|$path"), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp), modifier = Modifier.fillMaxSize()) {
                 items(d.items, key = { it.path }) { f ->
                     val sel = f.path in selected
+                    Box {
                     Surface(
                         color = if (sel) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
                         shape = MaterialTheme.shapes.medium,
@@ -227,15 +230,35 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
                             },
                             onLongClick = {
                                 if (path.isEmpty()) return@combinedClickable
-                                selecting = true
-                                selected = selected + f.path
+                                // Seçim modundaysa seçime ekle, değilse kısayol menüsü
+                                if (selecting) selected = selected + f.path else menuFor = f.path
                             },
                         ),
                     ) {
                         FileRow(client, f, c?.thumbs == true, sel, tv)
                     }
+                    androidx.compose.material3.DropdownMenu(expanded = menuFor == f.path, onDismissRequest = { menuFor = null }) {
+                        MenuEntry(R.string.open, Icons.Rounded.Info) { menuFor = null;  Open.file(ctx, nav, server, f, d.items, path) }
+                        MenuEntry(R.string.select, Icons.Rounded.Checklist) { menuFor = null;  selecting = true; selected = setOf(f.path) }
+                        if (g.settings.current.on(Feature.DOWNLOADS)) MenuEntry(R.string.download, Icons.Rounded.Download) { menuFor = null; 
+                            downloadFiles(g, server, listOf(f)); toast(ctx, queued)
+                        }
+                        if (canEdit) {
+                            MenuEntry(R.string.fm_cut, Icons.Rounded.ContentCut) { menuFor = null; 
+                                FileClipboard.serverId = server.id; FileClipboard.paths = listOf(f.path); FileClipboard.cut = true; clipTick++
+                            }
+                            MenuEntry(R.string.fm_copy, Icons.Rounded.ContentCopy) { menuFor = null; 
+                                FileClipboard.serverId = server.id; FileClipboard.paths = listOf(f.path); FileClipboard.cut = false; clipTick++
+                            }
+                            MenuEntry(R.string.rename, Icons.Rounded.DriveFileRenameOutline) { menuFor = null;  selected = setOf(f.path); dialog = "rename" }
+                            MenuEntry(R.string.delete, Icons.Rounded.DeleteOutline) { menuFor = null;  selected = setOf(f.path); dialog = "delete" }
+                        }
+                        MenuEntry(R.string.properties, Icons.Rounded.Info) { menuFor = null;  nav.push(Route.Info(server.id, null, f.path, f.name)) }
+                    }
+                    }
                 }
             }
+        }
         }
     }
 
@@ -349,5 +372,14 @@ fun NameDialog(title: String, initial: String, onDismiss: () -> Unit, onOk: (Str
         text = { OutlinedTextField(text, { text = it }, singleLine = true, modifier = Modifier.fillMaxWidth()) },
         confirmButton = { TextButton(onClick = { if (text.isNotBlank()) onOk(text.trim()) }) { Text(stringResource(R.string.ok)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun MenuEntry(label: Int, icon: ImageVector, onClick: () -> Unit) {
+    androidx.compose.material3.DropdownMenuItem(
+        text = { Text(stringResource(label)) },
+        leadingIcon = { Icon(icon, null) },
+        onClick = onClick,
     )
 }

@@ -85,6 +85,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -177,13 +178,15 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
     BackHandler(enabled = panel != null) { popPanel() }
     BackHandler(enabled = panel == null && locked) { locked = false }
     BackHandler(enabled = panel == null && !locked) { onExit() }
+    // Sıradaki geri sayımı açıkken Geri yalnızca onu iptal eder
+    BackHandler(enabled = c.upNext != null) { c.cancelUpNext() }
 
     Box(
         Modifier.fillMaxSize().background(Color.Black)
             .onPreviewKeyEvent { e ->
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 tick++
-                if (panel != null || locked) return@onPreviewKeyEvent false
+                if (panel != null || locked || c.upNext != null) return@onPreviewKeyEvent false
                 if (controls) {
                     // Kontroller açıkken odak gezinmesi normal çalışır; yalnızca ↓ en alttaysa menü
                     return@onPreviewKeyEvent false
@@ -192,10 +195,12 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
                 when (e.key) {
                     Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.Spacebar -> { c.toggle(); show(); true }
                     Key.DirectionLeft -> {
-                        c.seekBy(-step * (1 + repeat / 4)); feedback = Icons.Rounded.Replay10 to formatDuration(c.position()); true
+                        val k = 1 + repeat / 4
+                        c.seekBy(-step * k); feedback = Icons.Rounded.Replay10 to formatDuration(c.position()) + if (k > 1) "  ·  ${k * step / 1000}s" else ""; true
                     }
                     Key.DirectionRight -> {
-                        c.seekBy(step * (1 + repeat / 4)); feedback = Icons.Rounded.Forward10 to formatDuration(c.position()); true
+                        val k = 1 + repeat / 4
+                        c.seekBy(step * k); feedback = Icons.Rounded.Forward10 to formatDuration(c.position()) + if (k > 1) "  ·  ${k * step / 1000}s" else ""; true
                     }
                     Key.DirectionUp -> { show(); true }
                     Key.DirectionDown -> { openPanel("tracks"); true }
@@ -307,6 +312,9 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
                 }
             }
         }
+
+        // Sıradaki (otomatik oynatma geri sayımı)
+        c.upNext?.let { n -> if (!pip) UpNextCard(c, n, tv, Modifier.align(Alignment.BottomEnd)) }
 
         // Kilit
         if (locked && controls && !pip) {
@@ -476,6 +484,16 @@ private fun Controls(
             }
             CtlIcon(Icons.Rounded.Forward10, stringResource(R.string.pl_fwd10), size = big * 0.8f) { c.seekBy(g.settings.current.seekStepSec * 1000L); onInteract() }
             CtlIcon(Icons.Rounded.SkipNext, stringResource(R.string.pl_next), size = big * 0.8f, enabled = c.hasNext()) { c.next(); onInteract() }
+        }
+        // Sürüklerken büyük saat
+        dragging?.let { f ->
+            Surface(color = Scrim, shape = MaterialTheme.shapes.large, modifier = Modifier.align(Alignment.Center)) {
+                Text(
+                    formatDuration((f * dur).toLong()) + " / " + formatDuration(dur),
+                    color = Color.White, style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                )
+            }
         }
         // Alt
         Column(
@@ -745,5 +763,37 @@ private fun DelayRow(label: String, value: Long, stepMs: Long, modifier: Modifie
             FilledTonalButton(onClick = { onChange(value + stepMs) }, modifier = Modifier.focusRing(CircleShape)) { Text("+${stepMs}") }
         }
         TextButton(onClick = { onChange(0) }, modifier = Modifier.focusRing(CircleShape)) { Text(stringResource(R.string.pl_reset)) }
+    }
+}
+
+/** YouTube gibi: "Sıradaki" kartı, geri sayım; Şimdi oynat / İptal. */
+@Composable
+private fun UpNextCard(c: VideoController, next: com.alis.core.model.Item, tv: Boolean, modifier: Modifier) {
+    val playNow = remember { FocusRequester() }
+    LaunchedEffect(next.id) { delay(100); runCatching { playNow.requestFocus() } }
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+        shape = MaterialTheme.shapes.large,
+        modifier = modifier.padding(if (tv) 48.dp else 20.dp).widthIn(max = if (tv) 520.dp else 380.dp),
+    ) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(width = if (tv) 160.dp else 120.dp, height = if (tv) 90.dp else 68.dp).clip(MaterialTheme.shapes.medium)) {
+                com.alis.app.ui.Thumb(next.thumb, Icons.Rounded.PlayArrow, Modifier.fillMaxSize(), 28.dp)
+                Surface(color = Scrim, shape = CircleShape, modifier = Modifier.align(Alignment.Center).size(40.dp)) {
+                    Box(contentAlignment = Alignment.Center) { Text(c.upNextLeft.toString(), color = Color.White, style = MaterialTheme.typography.titleMedium) }
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.pl_up_next, c.upNextLeft), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(next.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
+                    FilledTonalButton(onClick = { c.playUpNext() }, modifier = Modifier.focusRequester(playNow).focusRing(CircleShape)) {
+                        Text(stringResource(R.string.pl_play_now))
+                    }
+                    TextButton(onClick = { c.cancelUpNext() }, modifier = Modifier.focusRing(CircleShape)) { Text(stringResource(R.string.cancel)) }
+                }
+            }
+        }
     }
 }

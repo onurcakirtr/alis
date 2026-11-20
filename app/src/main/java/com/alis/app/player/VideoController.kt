@@ -89,6 +89,13 @@ class VideoController(
     var boost by mutableIntStateOf(0) // mB (0 – 1500)
     var message by mutableStateOf<String?>(null)
 
+    /** Sıradaki video geri sayımı (otomatik oynatma "5 sn sonra"): gösterilecek öğe ve kalan saniye */
+    var upNext by mutableStateOf<Item?>(null)
+    var upNextLeft by mutableIntStateOf(0)
+    private var countdown: Job? = null
+    /** Bu dosyada gömülü altyazı için dil tercihine bakıldı mı */
+    private var autoEmbeddedDone = false
+
     /** Akış remux (AC3 / DTS gibi cihazın çözemediği sesler AAC'ye çevrilerek fMP4 akışı) */
     var remux by mutableStateOf(false)
     private var remuxBase = 0L
@@ -115,6 +122,7 @@ class VideoController(
 
         override fun onTracksChanged(tracks: Tracks) {
             tracksVersion++
+            autoEmbedded(tracks)
             // Ses çözülemiyorsa Akış'ın remux'una geç (bir kez)
             if (!remux && trackable && TrackTools.audioUnsupported(tracks)) fallbackToRemux(player.currentPosition)
         }
@@ -170,6 +178,8 @@ class VideoController(
     private val trackable: Boolean get() = server?.isAkis == true && !item.id.startsWith("offline:") && !item.id.startsWith("live:")
 
     fun load(i: Int, startMs: Long = -1) {
+        cancelUpNext()
+        autoEmbeddedDone = false
         report(force = true)
         index = i
         item = queue[i]
@@ -221,7 +231,7 @@ class VideoController(
         val list = externalSubs
         val pick = list.indexOfFirst { it.forced }.takeIf { it >= 0 }
             ?: list.indexOfFirst { want.isNotEmpty() && it.lang.equals(want, true) }.takeIf { it >= 0 }
-        if (pick != null) selectExternal(pick)
+        if (pick != null) selectExternal(pick, remember = false)
     }
 
     /**
@@ -297,13 +307,62 @@ class VideoController(
         load(queue.size - 1)
     }
 
+    /** next() neyi oynatacak (geri sayım kartında gösterilir); karışıkta bilinmez. */
+    private fun peekNext(): Item? = when {
+        shuffle && queue.size > 1 -> null
+        index < queue.size - 1 -> queue[index + 1]
+        repeat == 2 && queue.size > 1 -> queue[0]
+        else -> detail?.next
+    }
+
     private fun onEnded() {
         report(force = true, ended = true)
+        val mode = settings.autoplay
         when {
             repeat == 1 -> { seekTo(0); player.play() }
-            settings.on(Feature.AUTOPLAY_NEXT) && hasNext() -> next()
-            repeat == 2 -> load(0)
+            mode == "now" && (hasNext() || repeat == 2) -> next()
+            mode == "countdown" && (hasNext() || repeat == 2) -> startCountdown()
         }
+    }
+
+    private fun startCountdown() {
+        countdown?.cancel()
+        upNext = peekNext() ?: queue.getOrNull(index)
+        upNextLeft = 5
+        countdown = scope.launch {
+            while (upNextLeft > 0) {
+                delay(1000)
+                upNextLeft--
+            }
+            playUpNext()
+        }
+    }
+
+    /** Geri sayımı beklemeden sıradakine geç. */
+    fun playUpNext() {
+        countdown?.cancel()
+        countdown = null
+        upNext = null
+        next()
+    }
+
+    fun cancelUpNext() {
+        countdown?.cancel()
+        countdown = null
+        upNext = null
+    }
+
+    /** Altyazı dili tercihi varsa ve dış altyazı seçilmediyse, dosyanın içindeki aynı dildeki altyazıyı aç. */
+    private fun autoEmbedded(tracks: Tracks) {
+        if (autoEmbeddedDone || tracks.groups.isEmpty()) return
+        autoEmbeddedDone = true
+        val want = settings.subLang
+        if (want.isEmpty() || subChoice != SubChoice.Off || !settings.on(Feature.SUBTITLES)) return
+        val opt = TrackTools.options(player, C.TRACK_TYPE_TEXT).firstOrNull { o ->
+            o.group.getTrackFormat(o.index).language?.startsWith(want, ignoreCase = true) == true
+        } ?: return
+        subChoice = SubChoice.Embedded(opt.label)
+        TrackTools.select(player, opt)
     }
 
     fun changeSpeed(v: Float) {
@@ -318,8 +377,9 @@ class VideoController(
         if (!remux) player.seekTo(player.currentPosition)
     }
 
-    fun selectExternal(i: Int) {
+    fun selectExternal(i: Int, remember: Boolean = true) {
         val sub = externalSubs.getOrNull(i) ?: return
+        if (remember && sub.lang.isNotEmpty()) g.settings.setSubLang(sub.lang.lowercase())
         subChoice = SubChoice.External(i)
         TrackTools.disable(player, C.TRACK_TYPE_TEXT)
         cues = emptyList()
@@ -336,6 +396,7 @@ class VideoController(
     }
 
     fun selectEmbedded(o: TrackTools.Option) {
+        o.group.getTrackFormat(o.index).language?.takeIf { it.isNotEmpty() && it != "und" }?.let { g.settings.setSubLang(it.substringBefore('-').lowercase()) }
         subChoice = SubChoice.Embedded(o.label)
         cues = emptyList()
         embeddedHistory.clear()
@@ -343,12 +404,17 @@ class VideoController(
     }
 
     fun subtitlesOff() {
+        // Kapatılınca bir sonraki videoda da kendiliğinden açılmasın
+        g.settings.setSubLang("")
         subChoice = SubChoice.Off
         cues = emptyList()
         TrackTools.disable(player, C.TRACK_TYPE_TEXT)
     }
 
-    fun selectAudio(o: TrackTools.Option) = TrackTools.select(player, o)
+    fun selectAudio(o: TrackTools.Option) {
+        o.group.getTrackFormat(o.index).language?.takeIf { it.isNotEmpty() && it != "und" }?.let { g.settings.setAudioLang(it.substringBefore('-').lowercase()) }
+        TrackTools.select(player, o)
+    }
 
     /** Remux kipinde ses parçası Akış'tan seçilir (akış yeniden başlar). */
     fun selectRemuxAudio(t: Track) = startRemux(position(), t.index, t.canTranscode)
@@ -419,6 +485,7 @@ class VideoController(
     fun release() {
         report(force = true)
         ticker?.cancel()
+        countdown?.cancel()
         runCatching { equalizer?.release() }
         runCatching { loudness?.release() }
         player.removeListener(listener)

@@ -238,6 +238,7 @@ fun TvHome() {
             }
         }
         if (sel != null) item(key = "rows-" + sel.id) { ServerRows(sel, compact = true) }
+        if (servers.isEmpty() && !scanning) item(key = "help") { TvHelp() }
     }
 }
 
@@ -510,6 +511,26 @@ fun TvAddServer() {
                 Text(stringResource(R.string.tv_add_tips), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(12.dp))
                 FilledTonalButton(onClick = { g.servers.scan(); nav.pop() }, modifier = Modifier.focusRing(CircleShape)) { Text(stringResource(R.string.refresh)) }
+            }
+        }
+    }
+}
+
+/** İlk açılışta sunucu bulunamadıysa: ne yapmalı? */
+@Composable
+private fun TvHelp() {
+    Column(Modifier.padding(top = 24.dp).widthIn(max = 900.dp)) {
+        Text(stringResource(R.string.tv_help_title), style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            listOf(R.string.tv_help_1, R.string.tv_help_2, R.string.tv_help_3).forEachIndexed { i, t ->
+                ExpressiveCard(Modifier.weight(1f)) {
+                    Box(Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
+                        Text((i + 1).toString(), color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.titleMedium)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text(stringResource(t), style = MaterialTheme.typography.bodyLarge)
+                }
             }
         }
     }

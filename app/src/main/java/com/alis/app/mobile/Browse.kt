@@ -112,7 +112,7 @@ fun kindCode(k: Kind) = when (k) {
     else -> ""
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: String? = null, header: Boolean = true) {
     val g = graph()
@@ -174,7 +174,8 @@ fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: S
                 }
             }
         }
-        LoadView(load, server, Modifier.weight(1f)) { f ->
+                androidx.compose.material3.pulltorefresh.PullToRefreshBox(isRefreshing = load.refreshing, onRefresh = { load.reload() }, modifier = Modifier.weight(1f)) {
+        LoadView(load, server, Modifier.fillMaxSize()) { f ->
             val items = sortItems(f.items, s.sort, s.sortDesc)
             if (items.isEmpty()) {
                 MessageBox(Icons.Rounded.FolderOff, stringResource(R.string.folder_empty))
@@ -208,6 +209,7 @@ fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: S
                 }
                 if (s.view == "grid") {
                     LazyVerticalGrid(
+                        state = com.alis.app.ui.rememberGridMemory("g|${server.id}|$folderId"),
                         columns = GridCells.Adaptive(if (items.any { it.kind == Kind.VIDEO }) 170.dp else 120.dp),
                         contentPadding = PaddingValues(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -222,7 +224,7 @@ fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: S
                         }
                     }
                 } else {
-                    LazyColumn(contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp), modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(state = com.alis.app.ui.rememberListMemory("l|${server.id}|$folderId"), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp), modifier = Modifier.fillMaxSize()) {
                         items(items, key = { it.id }) { it ->
                             Surface(
                                 color = Color.Transparent,
@@ -240,6 +242,7 @@ fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: S
                     }
                 }
             }
+        }
         }
     }
 }
