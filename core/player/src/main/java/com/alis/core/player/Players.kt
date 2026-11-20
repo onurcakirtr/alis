@@ -16,6 +16,8 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.alis.core.model.Item
 import com.alis.core.model.Kind
@@ -27,11 +29,19 @@ import java.util.Locale
 object Players {
 
     @OptIn(UnstableApi::class)
-    fun exo(ctx: Context, http: OkHttpClient, audioOnly: Boolean = false): ExoPlayer {
+    fun exo(ctx: Context, http: OkHttpClient, audioOnly: Boolean = false, delay: AudioDelayProcessor? = null): ExoPlayer {
         val upstream = OkHttpDataSource.Factory(http).setUserAgent("Alis/1.0 (Android)")
         // content:// (indirilenler) ve http aynı fabrikadan
         val data = DefaultDataSource.Factory(ctx, upstream)
-        val renderers = DefaultRenderersFactory(ctx)
+        val renderers = object : DefaultRenderersFactory(ctx) {
+            // Ses gecikmesi işlemcisi ses yoluna eklenir
+            override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink? =
+                DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(enableFloatOutput)
+                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .apply { if (delay != null) setAudioProcessors(arrayOf(delay)) }
+                    .build()
+        }
             .setEnableDecoderFallback(true)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
         return ExoPlayer.Builder(ctx, renderers)
