@@ -215,6 +215,15 @@ class Transfers(private val ctx: Context, private val net: Net, private val serv
             if (!r.isSuccessful) throw IOException("HTTP ${r.code}")
             val partial = r.code == 206
             val start = if (partial) resumeFrom else 0L
+            // Sunucunun verdiği dosya adı (paylaşım bağlantıları, ZIP'ler)
+            r.header("Content-Disposition")?.let { cd ->
+                val fn = Regex("""filename\*=UTF-8''([^;]+)""", RegexOption.IGNORE_CASE).find(cd)?.groupValues?.get(1)?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+                    ?: Regex("filename=\"?([^\";]+)\"?", RegexOption.IGNORE_CASE).find(cd)?.groupValues?.get(1)
+                if (!fn.isNullOrBlank() && fn != t.name && t.done == 0L) {
+                    runCatching { resolver.update(target!!, ContentValues().apply { put(MediaStore.Downloads.DISPLAY_NAME, fn) }, null, null) }
+                    update(t.id) { it.copy(name = fn) }
+                }
+            }
             val len = r.body?.contentLength() ?: -1
             val total = if (len >= 0) start + len else t.size
             update(t.id) { it.copy(size = total, done = start) }

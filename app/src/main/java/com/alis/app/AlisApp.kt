@@ -14,14 +14,14 @@ import com.alis.core.data.Transfers
 import com.alis.core.data.TransfersProvider
 
 class AlisApp : Application(), GraphProvider, TransfersProvider, SingletonImageLoader.Factory {
-    override lateinit var graph: Graph
-        private set
+    private lateinit var g: Graph
+    override val graph: Graph get() = g
 
     override val transfers: Transfers get() = graph.transfers
 
     override fun onCreate() {
         super.onCreate()
-        graph = Graph(this)
+        g = Graph(this)
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CH_MIRROR, getString(R.string.ch_mirror), NotificationManager.IMPORTANCE_DEFAULT))
         nm.createNotificationChannel(NotificationChannel(CH_STATUS, getString(R.string.ch_status), NotificationManager.IMPORTANCE_LOW))

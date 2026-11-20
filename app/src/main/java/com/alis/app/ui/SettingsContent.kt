@@ -195,6 +195,9 @@ fun SettingsContent(columns: Int, contentPadding: PaddingValues = PaddingValues(
             }
         }
     }
+    val rendererExtra: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit = {
+        SettingRow(null, stringResource(R.string.set_renderer_name), s.rendererName.ifEmpty { "Alış • " + s.deviceName }, onClick = { editRenderer = true })
+    }
     val sensitive: @Composable () -> Unit = {
         SectionTitle(stringResource(R.string.set_sensitive))
         ExpressiveCard {
@@ -202,9 +205,7 @@ fun SettingsContent(columns: Int, contentPadding: PaddingValues = PaddingValues(
             SENSITIVE.forEach { fi ->
                 FeatureRow(
                     fi.icon, stringResource(fi.title), stringResource(fi.sub), s.on(fi.f), divider = true,
-                    extra = if (fi.f == Feature.RENDERER) ({
-                        SettingRow(null, stringResource(R.string.set_renderer_name), s.rendererName.ifEmpty { "Alış • " + s.deviceName }, onClick = { editRenderer = true })
-                    }) else null,
+                    extra = if (fi.f == Feature.RENDERER) rendererExtra else null,
                 ) { setFeature(fi.f, it) }
             }
         }
