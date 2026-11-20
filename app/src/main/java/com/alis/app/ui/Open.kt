@@ -105,6 +105,15 @@ object Open {
         }
     }
 
+    /** alis://play?s=<sunucu>&i=<öğe> — Google TV "Devam et" satırından. */
+    fun deepLink(ctx: Context, uri: Uri): Boolean {
+        if (uri.scheme != "alis" || uri.host != "play") return false
+        val s = ctx.graph.servers.byId(uri.getQueryParameter("s") ?: return false) ?: return false
+        val id = uri.getQueryParameter("i") ?: return false
+        video(ctx, s, Item(id, "", Kind.VIDEO, s.id), emptyList(), null)
+        return true
+    }
+
     val TEXT_EXT = setOf(
         "txt", "md", "markdown", "json", "xml", "csv", "log", "ini", "conf", "yml", "yaml", "kt", "java", "js", "ts", "py", "c", "cpp", "h",
         "html", "htm", "css", "sh", "bat", "gradle", "kts", "properties", "srt", "vtt", "ass", "sql", "go", "rs", "swift", "toml",

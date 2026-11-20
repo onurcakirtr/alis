@@ -145,6 +145,8 @@ class VideoController(
 
     init {
         player.addListener(listener)
+        // Renderer (DLNA oynatıcı) modundan geldiyse denetleyici bu oynatıcıyı yönetir
+        if (queue.firstOrNull()?.id == "offline:dmr") com.alis.app.RendererBridge.video = player
         load(startIndex)
         ticker = scope.launch {
             while (isActive) {
@@ -386,7 +388,9 @@ class VideoController(
         val dur = duration()
         if (dur <= 0) return
         val pos = if (ended) dur else position()
+        val it0 = item
         scope.launch { g.servers.client(s).reportProgress(id, pos / 1000.0, dur / 1000.0) }
+        com.alis.app.WatchNext.publish(act, s.id, it0, pos, dur)
     }
 
     fun release() {
@@ -395,6 +399,7 @@ class VideoController(
         runCatching { equalizer?.release() }
         runCatching { loudness?.release() }
         player.removeListener(listener)
+        if (com.alis.app.RendererBridge.video === player) com.alis.app.RendererBridge.video = null
         player.release()
         scope.cancel()
     }

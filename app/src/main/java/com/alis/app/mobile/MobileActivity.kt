@@ -56,7 +56,7 @@ class MobileActivity : AppCompatActivity() {
     private fun handle(i: Intent?) {
         val data = i?.data ?: return
         if (data.scheme != "alis") return
-        pairFromUri(data)
+        if (data.host == "play") com.alis.app.ui.Open.deepLink(this, data) else pairFromUri(data)
     }
 
     fun pairFromUri(data: Uri) {

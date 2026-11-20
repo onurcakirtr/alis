@@ -26,6 +26,7 @@ class TvActivity : AppCompatActivity() {
             finish()
             return
         }
+        intent?.data?.let { com.alis.app.ui.Open.deepLink(this, it) }
         setContent {
             AlisRoot(this, tv = true) {
                 CompositionLocalProvider(LocalNav provides remember { navigator }) {
@@ -33,6 +34,11 @@ class TvActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.data?.let { com.alis.app.ui.Open.deepLink(this, it) }
     }
 
     /** Medya tuşları müzik çalarken her ekranda çalışsın. */
