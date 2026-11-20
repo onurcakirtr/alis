@@ -104,11 +104,17 @@ class AuthInterceptor : Interceptor {
 
 /** Uygulama genelindeki tek HTTP istemcisi. */
 class Net(ctx: Context) {
+    companion object {
+        const val USER_AGENT = "Alis/1.0 (Android)"
+    }
+
     val cookies = SecureCookieJar(ctx)
     val auth = AuthInterceptor()
     val client: OkHttpClient = OkHttpClient.Builder()
         .cookieJar(cookies)
         .addInterceptor(auth)
+        // Akış, web arayüzü kapalıyken de Alış'ı bununla tanır
+        .addInterceptor { chain -> chain.proceed(chain.request().newBuilder().header("User-Agent", USER_AGENT).build()) }
         .connectTimeout(6, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
