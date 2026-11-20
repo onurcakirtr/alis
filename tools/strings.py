@@ -16,6 +16,8 @@ S = {
     "ok": ("OK", "Tamam"),
     "cancel": ("Cancel", "İptal"),
     "back": ("Back", "Geri"),
+    "close": ("Close", "Kapat"),
+    "clear": ("Clear", "Temizle"),
     "back_again": ("Press back again to exit", "Çıkmak için tekrar Geri'ye bas"),
     "retry": ("Try again", "Tekrar dene"),
     "refresh": ("Refresh", "Yenile"),

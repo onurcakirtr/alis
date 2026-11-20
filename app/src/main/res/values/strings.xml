@@ -6,6 +6,8 @@
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="back">Back</string>
+    <string name="close">Close</string>
+    <string name="clear">Clear</string>
     <string name="back_again">Press back again to exit</string>
     <string name="retry">Try again</string>
     <string name="refresh">Refresh</string>

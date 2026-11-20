@@ -71,6 +71,11 @@ fun SearchScreen(serverId: String?) {
         OutlinedTextField(
             text, { text = it },
             leadingIcon = { Icon(Icons.Rounded.Search, null) },
+            trailingIcon = {
+                if (text.isNotEmpty()) androidx.compose.material3.IconButton(onClick = { text = "" }) {
+                    Icon(androidx.compose.material.icons.Icons.Rounded.Close, stringResource(R.string.clear))
+                }
+            },
             placeholder = { Text(stringResource(R.string.search_hint)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),

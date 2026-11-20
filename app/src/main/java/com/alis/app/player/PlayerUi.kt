@@ -41,6 +41,7 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Audiotrack
 import androidx.compose.material.icons.rounded.BrightnessMedium
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Forward10
@@ -133,7 +134,9 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
     val g = graph()
     val s = g.settings.current
     var controls by remember { mutableStateOf(true) }
-    var panel by remember { mutableStateOf<String?>(null) }
+    // Yan menüler yığın olarak: "Daha fazla → Gecikme" açıkken Geri önce "Daha fazla"ya döner
+    val panels = remember { androidx.compose.runtime.mutableStateListOf<String>() }
+    val panel: String? = panels.lastOrNull()
     var locked by remember { mutableStateOf(false) }
     var tick by remember { mutableIntStateOf(0) }
     var feedback by remember { mutableStateOf<Pair<ImageVector, String>?>(null) }
@@ -145,6 +148,17 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
     fun show() {
         controls = true
         tick++
+    }
+
+    fun openPanel(p: String) { panels.clear(); panels.add(p) }
+    fun pushPanel(p: String) { if (panels.lastOrNull() != p) panels.add(p) }
+    fun popPanel() {
+        if (panels.isNotEmpty()) panels.removeAt(panels.lastIndex)
+        if (panels.isEmpty()) show() // menü kapanınca kontroller görünsün, ekran boş kalmasın
+    }
+    fun closePanels() {
+        panels.clear()
+        show()
     }
 
     // Kontroller oynarken 4 sn sonra gizlenir
@@ -160,7 +174,7 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
     LaunchedEffect(feedback) { if (feedback != null) { delay(900); feedback = null } }
     LaunchedEffect(c.message) { if (c.message != null) { delay(3500); c.message = null } }
 
-    BackHandler(enabled = panel != null) { panel = null }
+    BackHandler(enabled = panel != null) { popPanel() }
     BackHandler(enabled = panel == null && locked) { locked = false }
     BackHandler(enabled = panel == null && !locked) { onExit() }
 
@@ -184,7 +198,7 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
                         c.seekBy(step * (1 + repeat / 4)); feedback = Icons.Rounded.Forward10 to formatDuration(c.position()); true
                     }
                     Key.DirectionUp -> { show(); true }
-                    Key.DirectionDown -> { panel = "tracks"; true }
+                    Key.DirectionDown -> { openPanel("tracks"); true }
                     else -> false
                 }
             }
@@ -304,9 +318,16 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
         // Kontroller
         AnimatedVisibility(controls && !locked && !pip && panel == null, enter = fadeIn(), exit = fadeOut()) {
             Controls(c, tv, playFocus, onExit, onPip,
-                onPanel = { panel = it },
+                onPanel = { openPanel(it) },
                 onLock = { locked = true; controls = false },
                 onInteract = { tick++ })
+        }
+
+        // Yan menü açıkken dışına dokununca kapanır
+        if (panel != null && !pip) {
+            Box(
+                Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { closePanels() } },
+            )
         }
 
         // Yan menüler
@@ -316,7 +337,10 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
             exit = slideOutHorizontally { it } + fadeOut(),
             modifier = Modifier.align(Alignment.CenterEnd),
         ) {
-            SidePanel(c, panel ?: "", tv, onPanel = { panel = it }, onClose = { panel = null })
+            SidePanel(
+                c, panel ?: "", tv, canBack = panels.size > 1,
+                onPanel = { pushPanel(it) }, onBack = { popPanel() }, onClose = { closePanels() },
+            )
         }
     }
 }
@@ -502,7 +526,15 @@ private fun CtlIcon(icon: ImageVector, label: String, size: androidx.compose.ui.
 // ---------------- Yan menüler ----------------
 
 @Composable
-private fun SidePanel(c: VideoController, which: String, tv: Boolean, onPanel: (String) -> Unit, onClose: () -> Unit) {
+private fun SidePanel(
+    c: VideoController,
+    which: String,
+    tv: Boolean,
+    canBack: Boolean,
+    onPanel: (String) -> Unit,
+    onBack: () -> Unit,
+    onClose: () -> Unit,
+) {
     val first = remember(which) { FocusRequester() }
     LaunchedEffect(which) { delay(80); runCatching { first.requestFocus() } }
     Surface(
@@ -513,7 +545,23 @@ private fun SidePanel(c: VideoController, which: String, tv: Boolean, onPanel: (
         // Parça listesi değişince (yeni dosya, remux) menü yeniden kurulur
         androidx.compose.runtime.key(c.tracksVersion, c.remux, c.probeTracks.size, c.externalSubs.size) {
         LazyColumn(contentPadding = PaddingValues(vertical = 20.dp, horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            fun title(t: Int) = item { Text(stringResource(t), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 8.dp, bottom = 10.dp)) }
+            // Başlık: solda geri (alt menüdeyse) ya da kapat, sağda kapat
+            fun title(t: Int) = item {
+                Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { if (canBack) onBack() else onClose() }, modifier = Modifier.focusRing(CircleShape, 1.1f)) {
+                        Icon(
+                            if (canBack) Icons.AutoMirrored.Rounded.ArrowBack else Icons.Rounded.Close,
+                            stringResource(if (canBack) R.string.back else R.string.close),
+                        )
+                    }
+                    Text(stringResource(t), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).padding(start = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (canBack) {
+                        IconButton(onClick = onClose, modifier = Modifier.focusRing(CircleShape, 1.1f)) {
+                            Icon(Icons.Rounded.Close, stringResource(R.string.close))
+                        }
+                    }
+                }
+            }
             when (which) {
                 "tracks", "audio" -> {
                     title(R.string.pl_audio)
@@ -521,23 +569,23 @@ private fun SidePanel(c: VideoController, which: String, tv: Boolean, onPanel: (
                         val list = c.probeTracks.filter { !it.video }
                         itemsIndexed(list) { i, t ->
                             Choice(listOfNotNull(t.name.ifEmpty { null }, t.lang.ifEmpty { null }, t.codec.uppercase(), if (t.channels >= 6) "5.1" else null).joinToString(" · ").ifEmpty { "#${i + 1}" },
-                                t.index == c.remuxAudio, if (i == 0) Modifier.focusRequester(first) else Modifier) { c.selectRemuxAudio(t) }
+                                t.index == c.remuxAudio, if (i == 0) Modifier.focusRequester(first) else Modifier) { c.selectRemuxAudio(t); if (which == "audio") onClose() }
                         }
                     } else {
                         val opts = TrackTools.options(c.player, C.TRACK_TYPE_AUDIO)
                         itemsIndexed(opts) { i, o ->
-                            Choice(o.label + if (!o.supported) " ⚠" else "", o.selected, if (i == 0) Modifier.focusRequester(first) else Modifier) { c.selectAudio(o) }
+                            Choice(o.label + if (!o.supported) " ⚠" else "", o.selected, if (i == 0) Modifier.focusRequester(first) else Modifier) { c.selectAudio(o); if (which == "audio") onClose() }
                         }
                         if (opts.isEmpty()) item { Text("—", Modifier.padding(12.dp).focusRequester(first).focusable()) }
                     }
                     if (which == "tracks") {
                         item { Spacer(Modifier.height(14.dp)) }
-                        subtitleItems(c, null)
+                        subtitleItems(c, null, onClose)
                     }
                 }
                 "subs" -> {
                     title(R.string.pl_subs)
-                    subtitleItems(c, first)
+                    subtitleItems(c, first, onClose)
                     item { Spacer(Modifier.height(10.dp)) }
                     item { MenuRow(Icons.Rounded.Timer, stringResource(R.string.pl_sub_delay_short), "${c.subDelayMs} ms") { onPanel("delay") } }
                     item { MenuRow(Icons.Rounded.ClosedCaption, stringResource(R.string.pl_sub_style), "") { onPanel("style") } }
@@ -545,12 +593,12 @@ private fun SidePanel(c: VideoController, which: String, tv: Boolean, onPanel: (
                 "speed" -> {
                     title(R.string.pl_speed)
                     val speeds = listOf(0.25f, 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 2.5f, 3f, 4f)
-                    itemsIndexed(speeds) { i, v -> Choice("${v}×", c.speed == v, if (v == 1f) Modifier.focusRequester(first) else Modifier) { c.changeSpeed(v) } }
+                    itemsIndexed(speeds) { i, v -> Choice("${v}×", c.speed == v, if (v == 1f) Modifier.focusRequester(first) else Modifier) { c.changeSpeed(v); onClose() } }
                 }
                 "aspect" -> {
                     title(R.string.pl_aspect)
                     val opts = listOf("fit" to R.string.ar_fit, "fill" to R.string.ar_fill, "zoom" to R.string.ar_zoom, "16:9" to R.string.ar_169, "4:3" to R.string.ar_43)
-                    itemsIndexed(opts) { i, (k, l) -> Choice(stringResource(l), c.aspect == k, if (i == 0) Modifier.focusRequester(first) else Modifier) { c.aspect = k } }
+                    itemsIndexed(opts) { i, (k, l) -> Choice(stringResource(l), c.aspect == k, if (i == 0) Modifier.focusRequester(first) else Modifier) { c.aspect = k; onClose() } }
                 }
                 "delay" -> {
                     title(R.string.pl_delays)
@@ -593,7 +641,7 @@ private fun SidePanel(c: VideoController, which: String, tv: Boolean, onPanel: (
                 "queue" -> {
                     title(R.string.pl_playlist)
                     itemsIndexed(c.queue) { i, it ->
-                        Choice(it.title, i == c.index, if (i == c.index) Modifier.focusRequester(first) else Modifier) { c.load(i) }
+                        Choice(it.title, i == c.index, if (i == c.index) Modifier.focusRequester(first) else Modifier) { c.load(i); onClose() }
                     }
                 }
                 "jump" -> {
@@ -642,17 +690,17 @@ private fun SidePanel(c: VideoController, which: String, tv: Boolean, onPanel: (
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.subtitleItems(c: VideoController, first: FocusRequester?) {
-    item { Choice(androidx.compose.ui.res.stringResource(R.string.pl_subs_off), c.subChoice == SubChoice.Off, if (first != null) Modifier.focusRequester(first) else Modifier) { c.subtitlesOff() } }
+private fun androidx.compose.foundation.lazy.LazyListScope.subtitleItems(c: VideoController, first: FocusRequester?, onPicked: () -> Unit) {
+    item { Choice(androidx.compose.ui.res.stringResource(R.string.pl_subs_off), c.subChoice == SubChoice.Off, if (first != null) Modifier.focusRequester(first) else Modifier) { c.subtitlesOff(); onPicked() } }
     itemsIndexed(c.externalSubs) { i, sub ->
         Choice(listOfNotNull(sub.label.ifEmpty { null }, sub.lang.ifEmpty { null }).joinToString(" · ").ifEmpty { "#${i + 1}" } + if (sub.forced) " (forced)" else "",
-            c.subChoice == SubChoice.External(i), Modifier) { c.selectExternal(i) }
+            c.subChoice == SubChoice.External(i), Modifier) { c.selectExternal(i); onPicked() }
     }
     item {
         val emb = TrackTools.options(c.player, C.TRACK_TYPE_TEXT)
         Column {
             emb.forEach { o ->
-                Choice(o.label + " · " + androidx.compose.ui.res.stringResource(R.string.pl_embedded), c.subChoice == SubChoice.Embedded(o.label), Modifier) { c.selectEmbedded(o) }
+                Choice(o.label + " · " + androidx.compose.ui.res.stringResource(R.string.pl_embedded), c.subChoice == SubChoice.Embedded(o.label), Modifier) { c.selectEmbedded(o); onPicked() }
             }
         }
     }

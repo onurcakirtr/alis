@@ -6,6 +6,8 @@
     <string name="ok">Tamam</string>
     <string name="cancel">İptal</string>
     <string name="back">Geri</string>
+    <string name="close">Kapat</string>
+    <string name="clear">Temizle</string>
     <string name="back_again">Çıkmak için tekrar Geri\'ye bas</string>
     <string name="retry">Tekrar dene</string>
     <string name="refresh">Yenile</string>

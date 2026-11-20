@@ -108,6 +108,7 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
     val load = rememberLoad(server.id, path) { client.files(path) }
     var selecting by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(setOf<String>()) }
+    androidx.activity.compose.BackHandler(enabled = selecting) { selecting = false; selected = emptySet() }
     var dialog by remember { mutableStateOf<String?>(null) } // mkdir | rename | delete
     var busy by remember { mutableStateOf(false) }
     var clipTick by remember { mutableStateOf(0) }

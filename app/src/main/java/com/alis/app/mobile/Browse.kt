@@ -122,6 +122,7 @@ fun BrowseContent(server: Server, folderId: String, modifier: Modifier, title: S
     val load = rememberLoad(server.id, folderId) { g.library.list(server, folderId) }
     var selecting by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(setOf<String>()) }
+    androidx.activity.compose.BackHandler(enabled = selecting) { selecting = false; selected = emptySet() }
     var sortMenu by remember { mutableStateOf(false) }
     val queued = stringResource(R.string.download_queued)
 
