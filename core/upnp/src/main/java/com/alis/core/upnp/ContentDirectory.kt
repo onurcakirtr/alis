@@ -17,7 +17,7 @@ import java.io.StringReader
 data class BrowseResult(
     val items: List<Item>,
     val total: Int,
-    /** öğe kimliği → altyazılar (sec:CaptionInfoEx ya da text/* res) */
+    /** öğe kimliği → altyazılar (sec:CaptionInfoEx ya da metin türündeki res) */
     val subs: Map<String, List<Subtitle>> = emptyMap(),
 )
 
