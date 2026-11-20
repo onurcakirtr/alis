@@ -122,6 +122,7 @@ fun ServersScreen(wide: Boolean) {
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun ServerCard(s: Server, selected: Boolean, onClick: () -> Unit) {
     val g = graph()
@@ -142,7 +143,12 @@ fun ServerCard(s: Server, selected: Boolean, onClick: () -> Unit) {
                 }
                 Text(s.base.substringAfter("://"), style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
                 if (!s.online && s.isAkis) Text(stringResource(R.string.server_offline_hint), style = MaterialTheme.typography.bodySmall, color = cs.error)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
+                // Sığmayan rozet harf harf kırılmasın, bütün hâlinde alt satıra geçsin
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(top = 4.dp),
+                ) {
                     Badge(if (s.isAkis) stringResource(R.string.badge_akis) else s.model ?: "DLNA")
                     if (s.token != null) Badge(stringResource(R.string.badge_paired), Icons.Rounded.Link)
                     if (s.remote) Badge(stringResource(R.string.badge_remote), Icons.Rounded.Public)
@@ -194,7 +200,7 @@ fun Badge(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector? =
                 Icon(icon, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(4.dp))
             }
-            Text(text, style = MaterialTheme.typography.labelSmall)
+            Text(text, style = MaterialTheme.typography.labelSmall, maxLines = 1, softWrap = false)
         }
     }
 }
