@@ -104,6 +104,8 @@ class AuthInterceptor : Interceptor {
 
 /** Uygulama genelindeki tek HTTP istemcisi. */
 class Net(ctx: Context) {
+    /** Ayarlardaki cihaz adı (Graph kurulurken bağlanır) */
+    var deviceName: () -> String = { android.os.Build.MODEL }
     companion object {
         const val USER_AGENT = "Alis/1.0 (Android)"
     }
@@ -114,7 +116,15 @@ class Net(ctx: Context) {
         .cookieJar(cookies)
         .addInterceptor(auth)
         // Akış, web arayüzü kapalıyken de Alış'ı bununla tanır
-        .addInterceptor { chain -> chain.proceed(chain.request().newBuilder().header("User-Agent", USER_AGENT).build()) }
+        .addInterceptor { chain ->
+            // Akış bağlı cihazlarda Alış'ı ayarlardaki adla gösterir (başlıkta yalnız ASCII olabildiği için URL kodlu)
+            chain.proceed(
+                chain.request().newBuilder()
+                    .header("User-Agent", USER_AGENT)
+                    .header("X-Alis-Name", java.net.URLEncoder.encode(deviceName(), "UTF-8"))
+                    .build(),
+            )
+        }
         .connectTimeout(6, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)

@@ -6,7 +6,7 @@ import android.content.Context
 class Graph(ctx: Context) {
     val app: Context = ctx.applicationContext
     val net = Net(app)
-    val settings = SettingsStore(app)
+    val settings = SettingsStore(app).also { s -> net.deviceName = { s.current.deviceName } }
     val servers = ServerRepository(app, net, settings)
     val library = Library(net, servers)
     val transfers = Transfers(app, net, servers)
