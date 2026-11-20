@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ch_transfers">Downloads and uploads</string>
+    <string name="tr_downloading">Downloading</string>
+    <string name="tr_uploading">Uploading</string>
+</resources>

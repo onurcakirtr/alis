@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ch_transfers">İndirmeler ve yüklemeler</string>
+    <string name="tr_downloading">İndiriliyor</string>
+    <string name="tr_uploading">Yükleniyor</string>
+</resources>
