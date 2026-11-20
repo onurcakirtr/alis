@@ -140,10 +140,13 @@ class ServerRepository(private val ctx: Context, private val net: Net, private v
             _scanning.value = true
             val seen = HashMap<String, Server>()
             try {
-                discovery.search(5000).collect { d ->
-                    val s = d.toServer()
-                    seen[s.id] = s
-                    _found.value = _found.value + (s.id to s)
+                // "Otomatik keşif" kapalıysa yalnızca kayıtlı sunucular yoklanır
+                if (settings.current.on(Feature.DISCOVERY)) {
+                    discovery.search(5000).collect { d ->
+                        val s = d.toServer()
+                        seen[s.id] = s
+                        _found.value = _found.value + (s.id to s)
+                    }
                 }
                 // Keşifte görünmeyen kayıtlıları doğrudan yokla (ör. çok noktaya yayını engelleyen ağlar, uzak adresler)
                 coroutineScope {

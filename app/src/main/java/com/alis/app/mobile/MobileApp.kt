@@ -88,7 +88,14 @@ fun MobileApp() {
     val theme = LocalAppTheme.current
     val cs = MaterialTheme.colorScheme
     val g = graph()
-    LaunchedEffect(Unit) { g.servers.scan() }
+    val notifPerm = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(Unit) {
+        g.servers.scan()
+        // İndirme / yükleme ilerlemesi ve müzik kontrolleri bildirimde görünsün (Android 13+)
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) notifPerm.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+    }
 
     var lastBack by remember { mutableLongStateOf(0L) }
     val exitHint = stringResource(R.string.back_again)
