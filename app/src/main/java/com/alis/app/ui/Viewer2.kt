@@ -169,6 +169,7 @@ fun PhotoViewer() {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ZoomImage(url: String?, onTap: () -> Unit) {
     var scale by remember { mutableFloatStateOf(1f) }

@@ -185,7 +185,7 @@ class Transfers(private val ctx: Context, private val net: Net, private val serv
         var t = t0
         val resolver = ctx.contentResolver
         var target = t.target?.let { Uri.parse(it) }
-        if (target == null || runCatching { resolver.openFileDescriptor(target!!, "r")?.close() }.isFailure) {
+        if (target == null || runCatching { resolver.openFileDescriptor(target, "r")?.close() }.isFailure) {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, t.name)
                 put(MediaStore.Downloads.MIME_TYPE, t.mime ?: "application/octet-stream")
@@ -220,7 +220,7 @@ class Transfers(private val ctx: Context, private val net: Net, private val serv
                 val fn = Regex("""filename\*=UTF-8''([^;]+)""", RegexOption.IGNORE_CASE).find(cd)?.groupValues?.get(1)?.let { java.net.URLDecoder.decode(it, "UTF-8") }
                     ?: Regex("filename=\"?([^\";]+)\"?", RegexOption.IGNORE_CASE).find(cd)?.groupValues?.get(1)
                 if (!fn.isNullOrBlank() && fn != t.name && t.done == 0L) {
-                    runCatching { resolver.update(target!!, ContentValues().apply { put(MediaStore.Downloads.DISPLAY_NAME, fn) }, null, null) }
+                    runCatching { resolver.update(target, ContentValues().apply { put(MediaStore.Downloads.DISPLAY_NAME, fn) }, null, null) }
                     update(t.id) { it.copy(name = fn) }
                 }
             }
@@ -228,7 +228,7 @@ class Transfers(private val ctx: Context, private val net: Net, private val serv
             val total = if (len >= 0) start + len else t.size
             update(t.id) { it.copy(size = total, done = start) }
             val mode = if (partial) "wa" else "wt"
-            resolver.openOutputStream(target!!, mode)?.use { out ->
+            resolver.openOutputStream(target, mode)?.use { out ->
                 val input = r.body?.byteStream() ?: throw IOException("body")
                 val buf = ByteArray(256 * 1024)
                 var done = start
@@ -248,7 +248,7 @@ class Transfers(private val ctx: Context, private val net: Net, private val serv
                 update(t.id) { it.copy(done = done, size = if (total > 0) total else done) }
             } ?: throw IOException("write")
         }
-        resolver.update(target!!, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
+        resolver.update(target, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
     }
 
     private suspend fun doUpload(t: Transfer, progress: suspend (Transfer) -> Unit) {
