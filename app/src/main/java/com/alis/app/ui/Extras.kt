@@ -56,10 +56,17 @@ fun resumeTarget(items: List<Item>): Item? {
     return if (last >= 0 && last < videos.size - 1) videos[last + 1] else null
 }
 
+/** TV'de kart üzerinde uzun basınca açılacak ayrıntı (TvApp kökünde çizilir). */
+data class DetailRequest(val server: Server, val item: Item, val list: List<Item>, val folderId: String?)
+
+object DetailHolder {
+    val request = androidx.compose.runtime.mutableStateOf<DetailRequest?>(null)
+}
+
 /** Uzun basınca: öğenin ayrıntısı ve hızlı eylemler. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ItemDetailDialog(server: Server, item: Item, siblings: List<Item>, folderId: String?, onSelect: () -> Unit, onDismiss: () -> Unit) {
+fun ItemDetailDialog(server: Server, item: Item, siblings: List<Item>, folderId: String?, onSelect: (() -> Unit)?, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
     val g = graph()
     val nav = nav()
@@ -107,7 +114,7 @@ fun ItemDetailDialog(server: Server, item: Item, siblings: List<Item>, folderId:
                         Icon(Icons.Rounded.Download, null)
                         Text(stringResource(R.string.download))
                     }
-                    TextButton(onClick = { onDismiss(); onSelect() }, modifier = Modifier.focusRing(CircleShape)) {
+                    if (onSelect != null) TextButton(onClick = { onDismiss(); onSelect() }, modifier = Modifier.focusRing(CircleShape)) {
                         Icon(Icons.Rounded.Checklist, null)
                         Text(stringResource(R.string.select))
                     }
@@ -120,4 +127,10 @@ fun ItemDetailDialog(server: Server, item: Item, siblings: List<Item>, folderId:
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
     )
+}
+
+/** Favori klasörün kısa adı: yolun son iki parçası ("1DM / General"). */
+fun favoriteLabel(path: String): String {
+    val parts = path.trimEnd('/').split('/').filter { it.isNotEmpty() }
+    return parts.takeLast(2).joinToString(" / ").ifEmpty { path }
 }

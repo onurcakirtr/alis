@@ -325,8 +325,14 @@
     <string name="ft_apps">APK\'lar</string>
     <string name="fm_filter">Süz</string>
     <string name="fm_filter_hint">Ada göre süz</string>
-    <string name="fm_bookmark">Klasörü yer imine ekle</string>
-    <string name="fm_unbookmark">Yer imini kaldır</string>
+    <string name="fm_bookmark">Favorilere ekle</string>
+    <string name="fm_unbookmark">Favorilerden çıkar</string>
+    <string name="favorites">Favoriler</string>
+    <string name="pl_move_up">Yukarı taşı</string>
+    <string name="pl_move_down">Aşağı taşı</string>
+    <string name="pl_remove">Listeden çıkar</string>
+    <string name="set_clock">Oynatıcıda saat</string>
+    <string name="set_clock_sub">İzlerken köşede şu anki saati göster</string>
     <string name="err_retrying">Yeniden deneniyor…</string>
     <string name="server_offline_hint">Telefonda Akış\'ı başlat</string>
     <string name="ob_skip">Geç</string>
@@ -343,7 +349,7 @@
     <string name="ob5_title">Pratik hareketler</string>
     <string name="ob5_text">Ayrıntı ve hızlı eylemler için uzun bas, yenilemek için aşağı çek, şarkı değiştirmek için müzik çubuğunu kaydır. Oynatıcıda: çift dokunuşla sar, kaydırarak ses ve parlaklık.</string>
     <string name="ob5_title_tv">Kumanda için</string>
-    <string name="ob5_text_tv">Oynatıcıda: OK oynat / duraklat, ← → sar (basılı tutunca hızlanır), ↓ ses ve altyazıyı açar. Geri her zaman bir adım geri götürür.</string>
+    <string name="ob5_text_tv">Oynatıcıda: OK oynat / duraklat, ← → sar (basılı tutunca hızlanır), ↑ ↓ kontrolleri getirir; dosyada daha fazlası için OK\'u basılı tut ya da Menü\'ye bas. Geri her zaman bir adım geri götürür.</string>
     <string name="ar_fit">Sığdır</string>
     <string name="ar_fill">Uzat</string>
     <string name="ar_zoom">Doldur (kırp)</string>

@@ -47,6 +47,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -106,6 +107,7 @@ import com.alis.core.ui.IconBadge
 import com.alis.core.ui.LiveDot
 import com.alis.core.ui.MessageBox
 import com.alis.core.ui.focusRing
+import com.alis.core.ui.dpadLongPress
 import com.alis.core.ui.theme.LocalAppTheme
 import kotlinx.coroutines.launch
 
@@ -146,6 +148,7 @@ fun TvCard(
     watched: Boolean = false,
     focusRequester: FocusRequester? = null,
     onFocus: () -> Unit = {},
+    onLongPress: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -158,6 +161,7 @@ fun TvCard(
             modifier = Modifier.fillMaxWidth().aspectRatio(aspect)
                 .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
                 .onFocusChanged { if (it.isFocused) { focused = true; onFocus() } else focused = false }
+                .then(if (onLongPress != null) Modifier.dpadLongPress(onLongPress) else Modifier)
                 .focusRing(MaterialTheme.shapes.large, 1.08f, 4.dp),
         ) {
             Box {
@@ -194,6 +198,7 @@ fun TvItemCard(server: Server, item: Item, list: List<Item>, folderId: String?, 
             TvBackdrop.focused.value = item
             onFocus()
         },
+        onLongPress = { com.alis.app.ui.DetailHolder.request.value = com.alis.app.ui.DetailRequest(server, item, list, folderId) },
     ) { Open.item(ctx, nav, server, item, list, folderId) }
 }
 
@@ -324,6 +329,17 @@ fun ServerRows(server: Server, compact: Boolean) {
         if (!server.isAkis) {
             val items = root.value.orEmpty()
             if (items.isNotEmpty()) ItemRow(server.name, server, items, "0")
+        }
+        // Favoriler (dosya gezgininde yıldızlanan klasörler)
+        val st by graph().settings.state.collectAsStateWithLifecycle()
+        val marks = st.bookmarks[server.id].orEmpty()
+        if (marks.isNotEmpty() && c?.files == true) {
+            RowTitle(stringResource(R.string.favorites))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(20.dp), contentPadding = PaddingValues(vertical = 12.dp, horizontal = 4.dp)) {
+                itemsIndexed(marks) { _, m ->
+                    TvCard(com.alis.app.ui.favoriteLabel(m), m, null, Icons.Rounded.Star, 240.dp, 16f / 9f) { nav.push(Route.Files(server.id, m)) }
+                }
+            }
         }
         if (c != null && server.isAkis) ToolsRow(server, c)
         if (compact && h == null && root.value == null) Box(Modifier.padding(20.dp)) { CircularProgressIndicator() }

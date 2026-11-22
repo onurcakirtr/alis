@@ -38,6 +38,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.PictureInPicture
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Radar
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.Slideshow
@@ -177,6 +178,8 @@ fun SettingsContent(columns: Int, contentPadding: PaddingValues = PaddingValues(
                 s.autoplay,
             ) { g.settings.setAutoplay(it) }
             Text(stringResource(R.string.set_autoplay_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            com.alis.core.ui.CardDivider()
+            FeatureRow(Icons.Rounded.Schedule, stringResource(R.string.set_clock), stringResource(R.string.set_clock_sub), s.playerClock) { g.settings.setPlayerClock(it) }
             com.alis.core.ui.CardDivider()
             Text(stringResource(R.string.set_seek_step), style = MaterialTheme.typography.bodyLarge)
             Spacer(Modifier.height(6.dp))

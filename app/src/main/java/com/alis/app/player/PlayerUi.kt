@@ -42,6 +42,8 @@ import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.Audiotrack
 import androidx.compose.material.icons.rounded.BrightnessMedium
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Forward10
@@ -88,6 +90,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -125,7 +128,7 @@ private val Scrim = Color.Black.copy(alpha = 0.55f)
 /**
  * VLC tarzı oynatıcı arayüzü (Alış temasında).
  * Dokunmatik: tek dokunuş kontroller, çift dokunuş ±sarma, yatay kaydırma sarma, solda dikey parlaklık, sağda dikey ses.
- * Kumanda: OK oynat/duraklat, ←/→ sarma (basılı tutunca hızlanır), ↑ kontroller, ↓ ses / altyazı menüsü.
+ * Kumanda: OK oynat/duraklat, ←/→ sarma (basılı tutunca hızlanır, toplam gösterilir), ↑ / ↓ kontroller, Geri önce kontrolleri gizler.
  */
 @OptIn(UnstableApi::class)
 @Composable
@@ -145,10 +148,29 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
     val playFocus = remember { FocusRequester() }
     val step = s.seekStepSec * 1000L
     val audio = remember { ctx.getSystemService(AudioManager::class.java) }
+    // Kontrollerde bir düğme odakta mı (değilse OK / ←→ oynatıcıya gider)
+    var ctlFocused by remember { mutableStateOf(false) }
+    // Oynat düğmesine odak isteği (kontroller açılınca, menü kapanınca)
+    var focusTick by remember { mutableIntStateOf(0) }
+    // Art arda sarmada toplam: +10, +20, +30…
+    var seekAcc by remember { mutableStateOf(0L) }
+    var seekAt by remember { mutableStateOf(0L) }
 
     fun show() {
         controls = true
         tick++
+        focusTick++
+    }
+
+    /** Sarar ve toplamı gösterir: aynı yönde 1,5 sn içinde basıldıkça +10 → +20 → +30. */
+    fun seek(delta: Long) {
+        val now = System.currentTimeMillis()
+        seekAcc = if (now - seekAt < 1500 && (seekAcc > 0) == (delta > 0)) seekAcc + delta else delta
+        seekAt = now
+        c.seekBy(delta)
+        val sec = seekAcc / 1000
+        feedback = (if (delta < 0) Icons.Rounded.Replay10 else Icons.Rounded.Forward10) to
+            ((if (sec > 0) "+" else "") + sec + " sn  ·  " + formatDuration(c.position()))
     }
 
     fun openPanel(p: String) { panels.clear(); panels.add(p) }
@@ -169,15 +191,22 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
             controls = false
         }
     }
-    LaunchedEffect(controls) {
-        if (controls && tv) runCatching { playFocus.requestFocus() } else runCatching { rootFocus.requestFocus() }
+    LaunchedEffect(controls, focusTick, panel) {
+        if (panel != null) return@LaunchedEffect
+        if (controls && !locked) {
+            repeat(10) {
+                delay(60)
+                if (runCatching { playFocus.requestFocus() }.isSuccess && ctlFocused) return@LaunchedEffect
+            }
+        } else runCatching { rootFocus.requestFocus() }
     }
-    LaunchedEffect(feedback) { if (feedback != null) { delay(900); feedback = null } }
+    LaunchedEffect(feedback) { if (feedback != null) { delay(1200); feedback = null } }
     LaunchedEffect(c.message) { if (c.message != null) { delay(3500); c.message = null } }
 
     BackHandler(enabled = panel != null) { popPanel() }
     BackHandler(enabled = panel == null && locked) { locked = false }
     BackHandler(enabled = panel == null && !locked) { onExit() }
+    BackHandler(enabled = panel == null && !locked && controls && !pip) { controls = false }
     // Sıradaki geri sayımı açıkken Geri yalnızca onu iptal eder
     BackHandler(enabled = c.upNext != null) { c.cancelUpNext() }
 
@@ -187,23 +216,16 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 tick++
                 if (panel != null || locked || c.upNext != null) return@onPreviewKeyEvent false
-                if (controls) {
-                    // Kontroller açıkken odak gezinmesi normal çalışır; yalnızca ↓ en alttaysa menü
-                    return@onPreviewKeyEvent false
-                }
+                // Kontrollerde bir düğme odaktaysa tuşlar o düğmeye gider (normal odak gezinmesi)
+                if (controls && ctlFocused) return@onPreviewKeyEvent false
                 val repeat = e.nativeKeyEvent.repeatCount
                 when (e.key) {
-                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.Spacebar -> { c.toggle(); show(); true }
-                    Key.DirectionLeft -> {
-                        val k = 1 + repeat / 4
-                        c.seekBy(-step * k); feedback = Icons.Rounded.Replay10 to formatDuration(c.position()) + if (k > 1) "  ·  ${k * step / 1000}s" else ""; true
-                    }
-                    Key.DirectionRight -> {
-                        val k = 1 + repeat / 4
-                        c.seekBy(step * k); feedback = Icons.Rounded.Forward10 to formatDuration(c.position()) + if (k > 1) "  ·  ${k * step / 1000}s" else ""; true
-                    }
-                    Key.DirectionUp -> { show(); true }
-                    Key.DirectionDown -> { openPanel("tracks"); true }
+                    // Tek basışta oynat / duraklat (kontroller açık ama odak düğmede değilse de)
+                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.Spacebar -> { if (repeat == 0) { c.toggle(); show() }; true }
+                    Key.DirectionLeft -> { seek(-step * (1 + repeat / 4)); true }
+                    Key.DirectionRight -> { seek(step * (1 + repeat / 4)); true }
+                    // ↑ ve ↓ ikisi de kontrolleri (zaman çubuğu, düğmeler) getirir
+                    Key.DirectionUp, Key.DirectionDown -> { show(); true }
                     else -> false
                 }
             }
@@ -265,7 +287,26 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
         // Dokunmatik hareketler
         if (!pip && !tv) GestureLayer(c, enabled = s.on(Feature.GESTURES) && !locked, step = step, audio = audio, act = act,
             onTap = { if (locked) { controls = !controls } else if (controls) controls = false else show() },
+            onSeek = { seek(it) },
             onFeedback = { feedback = it })
+
+        // Şu anki saat (Ayarlar → Oynatıcı'dan kapatılabilir)
+        if (s.playerClock && !pip) {
+            var clock by remember { mutableStateOf("") }
+            LaunchedEffect(Unit) {
+                val fmt = android.text.format.DateFormat.getTimeFormat(ctx)
+                while (true) {
+                    clock = fmt.format(java.util.Date())
+                    delay(15_000 - System.currentTimeMillis() % 15_000)
+                }
+            }
+            Text(
+                clock,
+                color = Color.White.copy(alpha = if (controls) 1f else 0.75f),
+                style = (if (tv) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium).copy(shadow = Shadow(Color.Black, blurRadius = 6f)),
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = if (controls) (if (tv) 84.dp else 64.dp) else (if (tv) 28.dp else 14.dp), end = if (tv) 48.dp else 18.dp),
+            )
+        }
 
         // Kısa geri bildirim (sarma, ses, parlaklık)
         feedback?.let { (icon, text) ->
@@ -324,11 +365,15 @@ fun PlayerScreen(c: VideoController, pip: Boolean, tv: Boolean, onExit: () -> Un
         }
 
         // Kontroller
-        AnimatedVisibility(controls && !locked && !pip && panel == null, enter = fadeIn(), exit = fadeOut()) {
+        AnimatedVisibility(
+            controls && !locked && !pip && panel == null, enter = fadeIn(), exit = fadeOut(),
+            modifier = Modifier.onFocusChanged { ctlFocused = it.hasFocus },
+        ) {
             Controls(c, tv, playFocus, onExit, onPip,
                 onPanel = { openPanel(it) },
                 onLock = { locked = true; controls = false },
-                onInteract = { tick++ })
+                onInteract = { tick++ },
+                onSeek = { seek(it) })
         }
 
         // Yan menü açıkken dışına dokununca kapanır
@@ -361,6 +406,7 @@ private fun GestureLayer(
     audio: AudioManager,
     act: Activity,
     onTap: () -> Unit,
+    onSeek: (Long) -> Unit,
     onFeedback: (Pair<ImageVector, String>) -> Unit,
 ) {
     var dragMode by remember { mutableIntStateOf(0) } // 0 yok, 1 sarma, 2 parlaklık, 3 ses
@@ -375,8 +421,8 @@ private fun GestureLayer(
                     onTap = { onTap() },
                     onDoubleTap = { o ->
                         if (!enabled) return@detectTapGestures
-                        if (o.x < size.width / 3f) { c.seekBy(-step); onFeedback(Icons.Rounded.Replay10 to "-${step / 1000}s") }
-                        else if (o.x > size.width * 2f / 3f) { c.seekBy(step); onFeedback(Icons.Rounded.Forward10 to "+${step / 1000}s") }
+                        if (o.x < size.width / 3f) onSeek(-step)
+                        else if (o.x > size.width * 2f / 3f) onSeek(step)
                         else c.toggle()
                     },
                 )
@@ -439,6 +485,7 @@ private fun Controls(
     onPanel: (String) -> Unit,
     onLock: () -> Unit,
     onInteract: () -> Unit,
+    onSeek: (Long) -> Unit,
 ) {
     val ctx = LocalContext.current
     val act = ctx as Activity
@@ -470,7 +517,7 @@ private fun Controls(
         // Orta
         Row(Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (tv) 28.dp else 18.dp)) {
             CtlIcon(Icons.Rounded.SkipPrevious, stringResource(R.string.pl_prev), size = big * 0.8f, enabled = c.hasPrev() || c.position() > 5000) { c.prev(); onInteract() }
-            CtlIcon(Icons.Rounded.Replay10, stringResource(R.string.pl_back10), size = big * 0.8f) { c.seekBy(-g.settings.current.seekStepSec * 1000L); onInteract() }
+            CtlIcon(Icons.Rounded.Replay10, stringResource(R.string.pl_back10), size = big * 0.8f) { onSeek(-g.settings.current.seekStepSec * 1000L); onInteract() }
             Surface(
                 onClick = { c.toggle(); onInteract() },
                 shape = CircleShape,
@@ -482,7 +529,7 @@ private fun Controls(
                     Icon(if (c.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, stringResource(if (c.playing) R.string.pause else R.string.play), Modifier.size(big * 0.75f))
                 }
             }
-            CtlIcon(Icons.Rounded.Forward10, stringResource(R.string.pl_fwd10), size = big * 0.8f) { c.seekBy(g.settings.current.seekStepSec * 1000L); onInteract() }
+            CtlIcon(Icons.Rounded.Forward10, stringResource(R.string.pl_fwd10), size = big * 0.8f) { onSeek(g.settings.current.seekStepSec * 1000L); onInteract() }
             CtlIcon(Icons.Rounded.SkipNext, stringResource(R.string.pl_next), size = big * 0.8f, enabled = c.hasNext()) { c.next(); onInteract() }
         }
         // Sürüklerken büyük saat
@@ -658,8 +705,17 @@ private fun SidePanel(
                 }
                 "queue" -> {
                     title(R.string.pl_playlist)
-                    itemsIndexed(c.queue) { i, it ->
-                        Choice(it.title, i == c.index, if (i == c.index) Modifier.focusRequester(first) else Modifier) { c.load(i); onClose() }
+                    // queueVersion okunur: sıra değişince liste yeniden çizilsin
+                    val qv = c.queueVersion
+                    itemsIndexed(c.queue.toList(), key = { i, it -> "$qv|$i|${it.id}" }) { i, it ->
+                        QueueRow(
+                            title = "${i + 1}. " + it.title, current = i == c.index, firstRow = i == 0, last = i == c.queue.size - 1,
+                            modifier = if (i == c.index) Modifier.focusRequester(first) else Modifier,
+                            onPlay = { c.load(i); onClose() },
+                            onUp = { c.moveInQueue(i, i - 1) },
+                            onDown = { c.moveInQueue(i, i + 1) },
+                            onRemove = { c.removeFromQueue(i) },
+                        )
                     }
                 }
                 "jump" -> {
@@ -794,6 +850,43 @@ private fun UpNextCard(c: VideoController, next: com.alis.core.model.Item, tv: B
                     TextButton(onClick = { c.cancelUpNext() }, modifier = Modifier.focusRing(CircleShape)) { Text(stringResource(R.string.cancel)) }
                 }
             }
+        }
+    }
+}
+
+/** Oynatma listesi satırı: dokun / OK ile oynat, ↑ ↓ ile sırasını değiştir, ✕ ile listeden çıkar. */
+@Composable
+private fun QueueRow(
+    title: String,
+    current: Boolean,
+    firstRow: Boolean,
+    last: Boolean,
+    modifier: Modifier,
+    onPlay: () -> Unit,
+    onUp: () -> Unit,
+    onDown: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Surface(
+            onClick = onPlay,
+            shape = MaterialTheme.shapes.medium,
+            color = if (current) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+            modifier = modifier.weight(1f).focusRing(MaterialTheme.shapes.medium, 1.02f),
+        ) {
+            Row(Modifier.padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (current) Icon(Icons.Rounded.PlayArrow, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                Text(title, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 4.dp))
+            }
+        }
+        IconButton(onClick = onUp, enabled = !firstRow, modifier = Modifier.size(36.dp).focusRing(CircleShape)) {
+            Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.pl_move_up))
+        }
+        IconButton(onClick = onDown, enabled = !last, modifier = Modifier.size(36.dp).focusRing(CircleShape)) {
+            Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.pl_move_down))
+        }
+        IconButton(onClick = onRemove, enabled = !current, modifier = Modifier.size(36.dp).focusRing(CircleShape)) {
+            Icon(Icons.Rounded.Close, stringResource(R.string.pl_remove))
         }
     }
 }

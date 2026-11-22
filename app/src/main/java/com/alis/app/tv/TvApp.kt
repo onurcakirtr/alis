@@ -143,6 +143,11 @@ fun TvApp() {
                 ) { r -> TvScreen(r) }
             }
         }
+        // Kartta OK'u basılı tutunca / Menü tuşu: ayrıntı ve hızlı eylemler
+        val dr by com.alis.app.ui.DetailHolder.request
+        dr?.let { d ->
+            com.alis.app.ui.ItemDetailDialog(d.server, d.item, d.list, d.folderId, onSelect = null) { com.alis.app.ui.DetailHolder.request.value = null }
+        }
     }
 }
 

@@ -101,6 +101,8 @@ import com.alis.core.ui.ExpressiveCard
 import com.alis.core.ui.MessageBox
 import com.alis.core.ui.formatBytes
 import com.alis.core.ui.focusRing
+import androidx.compose.material.icons.rounded.MoreVert
+import com.alis.core.ui.dpadLongPress
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -403,7 +405,7 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
                 ) {
                     items(shown, key = { it.path }) { f ->
                         Box {
-                            FileCard(client, f, c?.thumbs == true, f.path in selected, Modifier.focusRing(MaterialTheme.shapes.medium).combinedClickable(onClick = { onTap(f) }, onLongClick = { onLong(f) }))
+                            FileCard(client, f, c?.thumbs == true, f.path in selected, Modifier.focusRing(MaterialTheme.shapes.medium).dpadLongPress { onLong(f) }.combinedClickable(onClick = { onTap(f) }, onLongClick = { onLong(f) }))
                             fileMenu(f, shown)
                         }
                     }
@@ -417,9 +419,10 @@ fun FileManager(server: Server, path: String, tv: Boolean, header: @Composable (
                                 color = if (sel) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
                                 shape = MaterialTheme.shapes.medium,
                                 modifier = Modifier.fillMaxWidth().focusRing(MaterialTheme.shapes.medium, 1.01f)
+                                    .dpadLongPress { onLong(f) }
                                     .combinedClickable(onClick = { onTap(f) }, onLongClick = { onLong(f) }),
                             ) {
-                                FileRow(client, f, c?.thumbs == true, sel, tv)
+                                FileRow(client, f, c?.thumbs == true, sel, tv, onMore = if (tv && path.isNotEmpty() && !selecting) ({ menuFor = f.path }) else null)
                             }
                             fileMenu(f, shown)
                         }
@@ -483,7 +486,7 @@ private fun Act(icon: ImageVector, label: Int, tv: Boolean, enabled: Boolean = t
 }
 
 @Composable
-private fun FileRow(client: com.alis.core.akis.AkisClient, f: FileEntry, thumbs: Boolean, selected: Boolean, tv: Boolean) {
+private fun FileRow(client: com.alis.core.akis.AkisClient, f: FileEntry, thumbs: Boolean, selected: Boolean, tv: Boolean, onMore: (() -> Unit)? = null) {
     val cs = MaterialTheme.colorScheme
     val df = remember { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT) }
     Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = if (tv) 10.dp else 7.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -499,6 +502,12 @@ private fun FileRow(client: com.alis.core.akis.AkisClient, f: FileEntry, thumbs:
                 f.modified.takeIf { it > 0 }?.let { df.format(Date(it * 1000)) },
             ).joinToString(" · ")
             if (meta.isNotEmpty()) Text(meta, style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant, maxLines = 1)
+        }
+        // TV: kumandada → ile bu düğmeye geçip menüyü açmak da mümkün (OK'u basılı tutmaya ya da Menü tuşuna ek)
+        if (onMore != null) {
+            androidx.compose.material3.IconButton(onClick = onMore, modifier = Modifier.focusRing(CircleShape)) {
+                Icon(Icons.Rounded.MoreVert, stringResource(R.string.more))
+            }
         }
     }
 }

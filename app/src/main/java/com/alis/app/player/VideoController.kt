@@ -60,6 +60,28 @@ class VideoController(
     private val scope = MainScope()
     val delayProcessor = AudioDelayProcessor()
     val player = Players.exo(act, g.net.client, delay = delayProcessor)
+
+    /**
+     * Medya oturumu: kumandanın / Bluetooth kulaklığın oynat-duraklat ve önceki-sonraki tuşları,
+     * kilit ekranı. Önceki / sonraki oynatma listesine bağlanır (tek öğelik oynatıcının kendi listesi yok).
+     */
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private val sessionPlayer = object : androidx.media3.common.ForwardingPlayer(player) {
+        override fun getAvailableCommands(): Player.Commands = super.getAvailableCommands().buildUpon()
+            .add(Player.COMMAND_SEEK_TO_NEXT).add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+            .add(Player.COMMAND_SEEK_TO_PREVIOUS).add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+            .build()
+        override fun isCommandAvailable(command: Int): Boolean = availableCommands.contains(command)
+        override fun seekToNext() = this@VideoController.next()
+        override fun seekToNextMediaItem() = this@VideoController.next()
+        override fun seekToPrevious() = this@VideoController.prev()
+        override fun seekToPreviousMediaItem() = this@VideoController.prev()
+        override fun hasNextMediaItem(): Boolean = this@VideoController.hasNext()
+        override fun hasPreviousMediaItem(): Boolean = true
+    }
+    private val session: androidx.media3.session.MediaSession? = runCatching {
+        androidx.media3.session.MediaSession.Builder(act, sessionPlayer).setId("alis-video").build()
+    }.getOrNull()
     private val settings get() = g.settings.current
 
     var index by mutableIntStateOf(startIndex)
@@ -285,7 +307,21 @@ class VideoController(
 
     fun seekBy(deltaMs: Long) = seekTo(position() + deltaMs)
 
-    fun hasNext() = shuffle && queue.size > 1 || index < queue.size - 1 || detail?.next != null
+    /** Liste değişince (sıra, kaldırma) arayüz yeniden çizilsin */
+    var queueVersion by mutableIntStateOf(0)
+        private set
+
+    /**
+     * Akış'ın önerdiği "sıradaki" yalnızca listede yoksa kullanılır; listedeyse ve geride kalıyorsa
+     * (son videodan ilk videoya dönüş) yalnızca "listeyi tekrarla" açıkken oynar.
+     */
+    private fun externalNext(): Item? {
+        val n = detail?.next ?: return null
+        val at = queue.indexOfFirst { it.id == n.id && it.serverId == n.serverId }
+        return if (at < 0) n else null
+    }
+
+    fun hasNext() = shuffle && queue.size > 1 || index < queue.size - 1 || (repeat == 2 && queue.size > 1) || externalNext() != null
     fun hasPrev() = index > 0
 
     fun next() {
@@ -293,8 +329,26 @@ class VideoController(
             shuffle && queue.size > 1 -> load((queue.indices - index).random())
             index < queue.size - 1 -> load(index + 1)
             repeat == 2 && queue.size > 1 -> load(0)
-            else -> detail?.next?.let { n -> playExternalNext(n) }
+            else -> externalNext()?.let { n -> playExternalNext(n) }
         }
+    }
+
+    /** Oynatma listesinde sıra değiştir (çalan video yerinde kalır, numarası güncellenir). */
+    fun moveInQueue(from: Int, to: Int) {
+        if (from !in queue.indices || to !in queue.indices || from == to) return
+        val playing = queue[index]
+        val it = queue.removeAt(from)
+        queue.add(to, it)
+        index = queue.indexOf(playing)
+        queueVersion++
+    }
+
+    /** Listeden kaldır (çalan video kaldırılamaz). */
+    fun removeFromQueue(i: Int) {
+        if (i !in queue.indices || i == index) return
+        queue.removeAt(i)
+        if (i < index) index--
+        queueVersion++
     }
 
     fun prev() {
@@ -304,6 +358,7 @@ class VideoController(
     /** Akış'ın "sıradaki"si kuyrukta değilse (tek öğeyle açıldıysa) sona ekleyip oynat. */
     private fun playExternalNext(n: Item) {
         queue.add(n)
+        queueVersion++
         load(queue.size - 1)
     }
 
@@ -312,7 +367,7 @@ class VideoController(
         shuffle && queue.size > 1 -> null
         index < queue.size - 1 -> queue[index + 1]
         repeat == 2 && queue.size > 1 -> queue[0]
-        else -> detail?.next
+        else -> externalNext()
     }
 
     private fun onEnded() {
@@ -489,6 +544,7 @@ class VideoController(
         runCatching { equalizer?.release() }
         runCatching { loudness?.release() }
         player.removeListener(listener)
+        runCatching { session?.release() }
         if (com.alis.app.RendererBridge.video === player) com.alis.app.RendererBridge.video = null
         player.release()
         scope.cancel()

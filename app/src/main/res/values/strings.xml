@@ -325,8 +325,14 @@
     <string name="ft_apps">APKs</string>
     <string name="fm_filter">Filter</string>
     <string name="fm_filter_hint">Filter by name</string>
-    <string name="fm_bookmark">Bookmark folder</string>
-    <string name="fm_unbookmark">Remove bookmark</string>
+    <string name="fm_bookmark">Add to favorites</string>
+    <string name="fm_unbookmark">Remove from favorites</string>
+    <string name="favorites">Favorites</string>
+    <string name="pl_move_up">Move up</string>
+    <string name="pl_move_down">Move down</string>
+    <string name="pl_remove">Remove from playlist</string>
+    <string name="set_clock">Clock in the player</string>
+    <string name="set_clock_sub">Show the current time in a corner while watching</string>
     <string name="err_retrying">Trying again…</string>
     <string name="server_offline_hint">Start Akış on the phone</string>
     <string name="ob_skip">Skip</string>
@@ -343,7 +349,7 @@
     <string name="ob5_title">Handy gestures</string>
     <string name="ob5_text">Long-press for details and quick actions, pull down to refresh, swipe the music bar to change songs. In the player: double-tap to seek, swipe for volume and brightness.</string>
     <string name="ob5_title_tv">Made for the remote</string>
-    <string name="ob5_text_tv">In the player: OK plays / pauses, ← → seek (hold to go faster), ↓ opens audio and subtitles. Back always takes you one step back.</string>
+    <string name="ob5_text_tv">In the player: OK plays / pauses, ← → seek (hold to go faster), ↑ ↓ show the controls, hold OK or press Menu on a file for more. Back always takes you one step back.</string>
     <string name="ar_fit">Fit</string>
     <string name="ar_fill">Stretch</string>
     <string name="ar_zoom">Fill (crop)</string>

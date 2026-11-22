@@ -128,9 +128,12 @@ private fun AkisHome(server: Server, caps: Capabilities) {
                 }
             }
             val marks = s.bookmarks[server.id].orEmpty()
-            if (marks.isNotEmpty() && caps.files) item {
-                FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    marks.forEach { m -> ToolChip(Icons.Rounded.Bookmark, m.trimEnd('/').substringAfterLast('/')) { nav.push(Route.Files(server.id, m)) } }
+            if (marks.isNotEmpty() && caps.files) {
+                item { SectionTitle(stringResource(R.string.favorites), Modifier.padding(horizontal = 16.dp)) }
+                item {
+                    FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        marks.forEach { m -> ToolChip(Icons.Rounded.Bookmark, com.alis.app.ui.favoriteLabel(m)) { nav.push(Route.Files(server.id, m)) } }
+                    }
                 }
             }
             if (h.cont.isNotEmpty()) item { Shelf(stringResource(R.string.shelf_continue), Icons.Rounded.History, server, h.cont, null) }

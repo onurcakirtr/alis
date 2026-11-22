@@ -53,6 +53,11 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -93,6 +98,29 @@ fun Modifier.focusRing(shape: Shape? = null, scale: Float = 1.04f, width: Dp = 3
         }
         .then(if (focused) Modifier.border(width, color, sh) else Modifier)
         .onFocusChanged { focused = it.isFocused || it.hasFocus }
+}
+
+/**
+ * Kumanda / klavye ile uzun basma: OK basılı tutulunca ya da Menü tuşuyla [onLong].
+ * (Compose'un dokunmatik uzun basması tuşlarda çalışmaz.) Uzun basıştan sonraki tuş bırakma tıklama sayılmaz.
+ */
+fun Modifier.dpadLongPress(onLong: () -> Unit): Modifier = composed {
+    var fired by remember { mutableStateOf(false) }
+    this.onPreviewKeyEvent { e ->
+        val center = e.key == Key.DirectionCenter || e.key == Key.Enter || e.key == Key.NumPadEnter
+        when {
+            e.key == Key.Menu && e.type == KeyEventType.KeyUp -> { onLong(); true }
+            center && e.type == KeyEventType.KeyDown && e.nativeKeyEvent.repeatCount >= 1 -> {
+                if (!fired) {
+                    fired = true
+                    onLong()
+                }
+                true
+            }
+            center && e.type == KeyEventType.KeyUp && fired -> { fired = false; true }
+            else -> false
+        }
+    }
 }
 
 // ---------------- Zemin ----------------

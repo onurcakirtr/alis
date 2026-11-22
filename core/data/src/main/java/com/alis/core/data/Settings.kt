@@ -80,6 +80,8 @@ data class AppSettings(
     val autoplay: String = "countdown",
     /** Açılışta son kullanılan sunucuyu doğrudan aç */
     val openLast: Boolean = true,
+    /** Oynatıcıda şu anki saat */
+    val playerClock: Boolean = true,
     /** Dosya yöneticisi yer imleri: sunucu kimliği → klasör yolları */
     val bookmarks: Map<String, List<String>> = emptyMap(),
 ) {
@@ -113,6 +115,7 @@ class SettingsStore(private val ctx: Context) {
         uiMode = p[K_UI] ?: "auto",
         autoplay = p[K_AUTOPLAY] ?: (if (p[booleanPreferencesKey("f_autoplayNext")] == false) "off" else "countdown"),
         openLast = p[K_OPEN_LAST] ?: true,
+        playerClock = p[K_CLOCK] ?: true,
         bookmarks = runCatching {
             val o = org.json.JSONObject(p[K_BOOKMARKS] ?: "{}")
             o.keys().asSequence().associateWith { k -> o.getJSONArray(k).let { a -> (0 until a.length()).map { a.getString(it) } } }
@@ -142,6 +145,7 @@ class SettingsStore(private val ctx: Context) {
     fun setUiMode(v: String) = scope.launch { ds.edit { it[K_UI] = v } }
     fun setAutoplay(v: String) = scope.launch { ds.edit { it[K_AUTOPLAY] = v } }
     fun setOpenLast(v: Boolean) = scope.launch { ds.edit { it[K_OPEN_LAST] = v } }
+    fun setPlayerClock(v: Boolean) = scope.launch { ds.edit { it[K_CLOCK] = v } }
 
     /** Klasörü yer imlerine ekler ya da çıkarır. */
     fun toggleBookmark(serverId: String, path: String) = scope.launch {
@@ -173,6 +177,7 @@ class SettingsStore(private val ctx: Context) {
         val K_UI = stringPreferencesKey("uiMode")
         val K_AUTOPLAY = stringPreferencesKey("autoplay")
         val K_OPEN_LAST = booleanPreferencesKey("openLast")
+        val K_CLOCK = booleanPreferencesKey("playerClock")
         val K_BOOKMARKS = stringPreferencesKey("bookmarks")
     }
 }
