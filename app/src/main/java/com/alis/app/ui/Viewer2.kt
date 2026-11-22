@@ -241,7 +241,7 @@ fun MusicScreen() {
                 Text(formatDuration(dur), style = MaterialTheme.typography.labelMedium)
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                IconButton(onClick = { p.shuffleModeEnabled = !p.shuffleModeEnabled }, modifier = Modifier.focusRing(CircleShape)) {
+                IconButton(onClick = { p?.shuffleModeEnabled = !p.shuffleModeEnabled }, modifier = Modifier.focusRing(CircleShape)) {
                     Icon(Icons.Rounded.Shuffle, stringResource(R.string.shuffle), tint = if (now.shuffle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = { p?.seekToPreviousMediaItem() }, modifier = Modifier.focusRing(CircleShape)) { Icon(Icons.Rounded.SkipPrevious, null, Modifier.size(36.dp)) }
@@ -252,7 +252,7 @@ fun MusicScreen() {
                 ) { Icon(if (now.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, Modifier.size(40.dp)) }
                 IconButton(onClick = { p?.seekToNextMediaItem() }, modifier = Modifier.focusRing(CircleShape)) { Icon(Icons.Rounded.SkipNext, null, Modifier.size(36.dp)) }
                 IconButton(onClick = {
-                    p.repeatMode = when (p.repeatMode) {
+                    p?.repeatMode = when (p.repeatMode) {
                         Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
                         Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
                         else -> Player.REPEAT_MODE_OFF
