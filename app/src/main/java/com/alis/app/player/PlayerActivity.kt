@@ -52,7 +52,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun start(i: Intent?): Boolean {
         ctl?.release()
         ctl = null
-        val data: android.net.Uri? = i?.data?.takeIf { i.action == Intent.ACTION_VIEW }
+        val data: android.net.Uri? = if (i?.action == Intent.ACTION_VIEW) i.data else null
         val external = data != null
         val server: Server? = if (external) null else PlayQueue.server
         val folder: String? = if (external) null else PlayQueue.folderId
