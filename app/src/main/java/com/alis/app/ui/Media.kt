@@ -20,7 +20,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.InsertDriveFile
+import androidx.compose.material.icons.automirrored.rounded.InsertDriveFile
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -56,7 +56,7 @@ fun kindIcon(k: Kind?): ImageVector = when (k) {
     Kind.VIDEO -> Icons.Rounded.Movie
     Kind.AUDIO -> Icons.Rounded.Audiotrack
     Kind.IMAGE -> Icons.Rounded.Image
-    else -> Icons.Rounded.InsertDriveFile
+    else -> Icons.AutoMirrored.Rounded.InsertDriveFile
 }
 
 /** Küçük resim; yüklenemezse türün ikonu. */

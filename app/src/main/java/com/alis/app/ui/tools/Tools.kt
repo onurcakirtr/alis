@@ -39,7 +39,7 @@ import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.ScreenShare
+import androidx.compose.material.icons.automirrored.rounded.ScreenShare
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SdStorage
 import androidx.compose.material.icons.rounded.Thermostat
@@ -317,7 +317,7 @@ fun LiveScreen(server: Server) {
         TopBar(stringResource(R.string.tool_live), server.name)
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (caps?.camera == true) FilterChip(mode == "cam", { mode = "cam" }, label = { Text(stringResource(R.string.live_camera)) }, leadingIcon = { Icon(Icons.Rounded.CameraAlt, null) }, modifier = Modifier.focusRing(MaterialTheme.shapes.small))
-            if (caps?.screen == true) FilterChip(mode == "screen", { mode = "screen" }, label = { Text(stringResource(R.string.live_screen)) }, leadingIcon = { Icon(Icons.Rounded.ScreenShare, null) }, modifier = Modifier.focusRing(MaterialTheme.shapes.small))
+            if (caps?.screen == true) FilterChip(mode == "screen", { mode = "screen" }, label = { Text(stringResource(R.string.live_screen)) }, leadingIcon = { Icon(Icons.AutoMirrored.Rounded.ScreenShare, null) }, modifier = Modifier.focusRing(MaterialTheme.shapes.small))
             if (caps?.mic == true) FilterChip(mode == "mic", { mode = "mic" }, label = { Text(stringResource(R.string.live_mic)) }, leadingIcon = { Icon(Icons.Rounded.Mic, null) }, modifier = Modifier.focusRing(MaterialTheme.shapes.small))
         }
         Spacer(Modifier.height(10.dp))

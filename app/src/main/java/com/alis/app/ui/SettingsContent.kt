@@ -39,7 +39,7 @@ import androidx.compose.material.icons.rounded.PictureInPicture
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Radar
 import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.Send
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.Slideshow
 import androidx.compose.material.icons.rounded.Tv
@@ -93,7 +93,7 @@ private val FEATURES = listOf(
     FeatureInfo(Feature.GESTURES, Icons.Rounded.Gesture, R.string.f_gestures, R.string.f_gestures_sub),
     FeatureInfo(Feature.SLIDESHOW, Icons.Rounded.Slideshow, R.string.f_slideshow, R.string.f_slideshow_sub),
     FeatureInfo(Feature.DOWNLOADS, Icons.Rounded.Download, R.string.f_downloads, R.string.f_downloads_sub),
-    FeatureInfo(Feature.SHARE_SEND, Icons.Rounded.Send, R.string.f_send, R.string.f_send_sub),
+    FeatureInfo(Feature.SHARE_SEND, Icons.AutoMirrored.Rounded.Send, R.string.f_send, R.string.f_send_sub),
     FeatureInfo(Feature.FILE_MANAGER, Icons.Rounded.FolderOpen, R.string.f_files, R.string.f_files_sub),
     FeatureInfo(Feature.DOC_PREVIEW, Icons.AutoMirrored.Rounded.Article, R.string.f_docs, R.string.f_docs_sub),
     FeatureInfo(Feature.ZIP_VIEW, Icons.Rounded.FolderZip, R.string.f_zip, R.string.f_zip_sub),

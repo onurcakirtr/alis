@@ -64,7 +64,7 @@ import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.SyncAlt
 import androidx.compose.material.icons.rounded.Timer
-import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -466,7 +466,7 @@ private fun GestureLayer(
                                 volF = (volF - d.y / size.height * maxVol * 1.5f).coerceIn(0f, maxVol.toFloat())
                                 val target = Math.round(volF).coerceIn(0, maxVol)
                                 if (target != cur) audio.setStreamVolume(AudioManager.STREAM_MUSIC, target, 0)
-                                onFeedback(Icons.Rounded.VolumeUp to "${target * 100 / maxVol.coerceAtLeast(1)}%")
+                                onFeedback(Icons.AutoMirrored.Rounded.VolumeUp to "${target * 100 / maxVol.coerceAtLeast(1)}%")
                             }
                         }
                     },

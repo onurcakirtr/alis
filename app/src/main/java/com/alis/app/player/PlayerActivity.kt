@@ -52,12 +52,12 @@ class PlayerActivity : AppCompatActivity() {
     private fun start(i: Intent?): Boolean {
         ctl?.release()
         ctl = null
-        val data = i?.data
-        val external = i?.action == Intent.ACTION_VIEW && data != null
+        val data: android.net.Uri? = i?.data?.takeIf { i.action == Intent.ACTION_VIEW }
+        val external = data != null
         val server: Server? = if (external) null else PlayQueue.server
         val folder: String? = if (external) null else PlayQueue.folderId
         val index: Int = if (external) 0 else PlayQueue.index
-        val items: List<Item> = if (external && data != null) {
+        val items: List<Item> = if (data != null) {
             val name = data.lastPathSegment?.substringAfterLast('/') ?: "Video"
             listOf(Item("offline:ext", name.substringBeforeLast('.'), Kind.VIDEO, url = data.toString(), ext = name.substringAfterLast('.', "")))
         } else {

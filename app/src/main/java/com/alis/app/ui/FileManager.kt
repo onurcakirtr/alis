@@ -67,7 +67,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.InsertDriveFile
+import androidx.compose.material.icons.automirrored.rounded.InsertDriveFile
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.ClosedCaption
@@ -614,7 +614,7 @@ fun fileIcon(f: FileEntry): ImageVector {
         e in SUB_EXT -> Icons.Rounded.ClosedCaption
         e in CODE_EXT -> Icons.Rounded.Code
         e in DOC_EXT -> Icons.Rounded.Description
-        else -> Icons.Rounded.InsertDriveFile
+        else -> Icons.AutoMirrored.Rounded.InsertDriveFile
     }
 }
 
