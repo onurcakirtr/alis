@@ -67,6 +67,10 @@ object Updater {
 
     /** @param force kullanıcı "Güncellemeleri denetle"ye bastı (ayar ve günlük sınır yok sayılır) */
     suspend fun check(ctx: Context, force: Boolean) = withContext(Dispatchers.IO) {
+        // Önceki bir güncellemeden kalan APK (ör. kurulum yarıda kaldıysa) her denetimde temizlenir
+        if (_state.value !is State.Downloading && _state.value !is State.Installing) {
+            runCatching { File(ctx.cacheDir, "update").deleteRecursively() }
+        }
         if (!supported) return@withContext
         val prefs = ctx.getSharedPreferences("updater", Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
@@ -168,6 +172,8 @@ object Updater {
                 )
                 session.commit(status.intentSender)
             }
+            // Paket kurucuya kopyalandı: indirilen APK artık gerekmez, yer kaplamasın
+            runCatching { dir.deleteRecursively() }
         } catch (e: Exception) {
             _state.value = State.Failed(e.message ?: e.javaClass.simpleName)
         }
