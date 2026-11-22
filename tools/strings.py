@@ -383,6 +383,7 @@ S = {
     "fm_bookmark": ("Add to favorites", "Favorilere ekle"),
     "fm_unbookmark": ("Remove from favorites", "Favorilerden çıkar"),
     "favorites": ("Favorites", "Favoriler"),
+    "link_open_title": ("%1$s wants to play on this device", "%1$s bu cihazda oynatmak istiyor"),
     "pl_move_up": ("Move up", "Yukarı taşı"),
     "pl_move_down": ("Move down", "Aşağı taşı"),
     "pl_remove": ("Remove from playlist", "Listeden çıkar"),

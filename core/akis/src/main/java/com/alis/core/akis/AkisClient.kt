@@ -562,6 +562,16 @@ class AkisClient(http: OkHttpClient, val server: Server) {
         if (r.has("err")) throw IOException(r.optString("err"))
     }
 
+    // ---------------- Kumanda bağı (Akış → Alış) ----------------
+
+    /** Akış'ta verilen komutları bekler (en çok ~25 sn). Eşleşme yoksa AccessException / IOException. */
+    suspend fun alisCommands(): JSONArray = getJson("/alis/cmd?wait=25", longPoll).optJSONArray("cmds") ?: JSONArray()
+
+    /** Oynatıcı durumunu Akış'a bildirir. */
+    suspend fun alisState(state: JSONObject) {
+        runCatching { postJson("/alis/state", state) }
+    }
+
     suspend fun adminLogout() {
         runCatching { postJson("/admin/logout", JSONObject()) }
     }

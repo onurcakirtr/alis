@@ -328,6 +328,7 @@
     <string name="fm_bookmark">Add to favorites</string>
     <string name="fm_unbookmark">Remove from favorites</string>
     <string name="favorites">Favorites</string>
+    <string name="link_open_title">%1$s wants to play on this device</string>
     <string name="pl_move_up">Move up</string>
     <string name="pl_move_down">Move down</string>
     <string name="pl_remove">Remove from playlist</string>

@@ -175,6 +175,7 @@ class VideoController(
         player.addListener(listener)
         // Renderer (DLNA oynatıcı) modundan geldiyse denetleyici bu oynatıcıyı yönetir
         if (queue.firstOrNull()?.id == "offline:dmr") com.alis.app.RendererBridge.video = player
+        com.alis.app.AkisLink.video = this
         load(startIndex)
         ticker = scope.launch {
             while (isActive) {
@@ -537,6 +538,62 @@ class VideoController(
         com.alis.app.WatchNext.publish(act, s.id, it0, pos, dur)
     }
 
+    /** Akış kumandası için durum (saniye cinsinden konum, parçalar, hız, gecikmeler). */
+    fun remoteState(): org.json.JSONObject {
+        val o = org.json.JSONObject()
+            .put("app", "video").put("title", item.title).put("id", item.id)
+            .put("pos", position()).put("dur", duration()).put("playing", playing)
+            .put("speed", speed.toDouble()).put("index", index).put("count", queue.size)
+            .put("subDelay", subDelayMs).put("audioDelay", audioDelayMs)
+        val audio = org.json.JSONArray()
+        if (remux) probeTracks.filter { !it.video }.forEachIndexed { i, t ->
+            audio.put(org.json.JSONObject().put("i", i).put("label", listOf(t.name, t.lang, t.codec.uppercase()).filter { it.isNotEmpty() }.joinToString(" · ").ifEmpty { "#${i + 1}" }).put("sel", t.index == remuxAudio))
+        } else TrackTools.options(player, C.TRACK_TYPE_AUDIO).forEachIndexed { i, op ->
+            audio.put(org.json.JSONObject().put("i", i).put("label", op.label).put("sel", op.selected))
+        }
+        o.put("audio", audio)
+        // Altyazılar: önce dış dosyalar, sonra dosyanın içindekiler (tek numaralandırma)
+        val subs = org.json.JSONArray()
+        externalSubs.forEachIndexed { i, sb ->
+            subs.put(org.json.JSONObject().put("i", i).put("label", listOf(sb.label, sb.lang).filter { it.isNotEmpty() }.joinToString(" · ").ifEmpty { "#${i + 1}" }).put("sel", subChoice == SubChoice.External(i)))
+        }
+        TrackTools.options(player, C.TRACK_TYPE_TEXT).forEachIndexed { k, op ->
+            subs.put(org.json.JSONObject().put("i", externalSubs.size + k).put("label", op.label).put("sel", subChoice == SubChoice.Embedded(op.label)))
+        }
+        o.put("subs", subs)
+        return o
+    }
+
+    /** Akış kumandasından gelen komut (ana iş parçacığında çağrılır). */
+    fun remoteCommand(c: org.json.JSONObject) {
+        when (c.optString("op")) {
+            "toggle" -> toggle()
+            "play" -> player.play()
+            "pause" -> player.pause()
+            "seek" -> seekTo(c.optLong("ms"))
+            "seekBy" -> seekBy(c.optLong("ms"))
+            "next" -> next()
+            "prev" -> prev()
+            "speed" -> changeSpeed(c.optDouble("v", 1.0).toFloat().coerceIn(0.25f, 4f))
+            "audio" -> {
+                val i = c.optInt("i")
+                if (remux) probeTracks.filter { !it.video }.getOrNull(i)?.let { selectRemuxAudio(it) }
+                else TrackTools.options(player, C.TRACK_TYPE_AUDIO).getOrNull(i)?.let { selectAudio(it) }
+            }
+            "sub" -> {
+                val i = c.optInt("i", -1)
+                when {
+                    i < 0 -> subtitlesOff()
+                    i < externalSubs.size -> selectExternal(i)
+                    else -> TrackTools.options(player, C.TRACK_TYPE_TEXT).getOrNull(i - externalSubs.size)?.let { selectEmbedded(it) }
+                }
+            }
+            "subDelay" -> subDelayMs = c.optLong("ms").coerceIn(-60_000, 60_000)
+            "audioDelay" -> setAudioDelay(c.optLong("ms").coerceIn(-5_000, 5_000))
+            "stop" -> act.finish()
+        }
+    }
+
     fun release() {
         report(force = true)
         ticker?.cancel()
@@ -545,6 +602,7 @@ class VideoController(
         runCatching { loudness?.release() }
         player.removeListener(listener)
         runCatching { session?.release() }
+        if (com.alis.app.AkisLink.video === this) com.alis.app.AkisLink.video = null
         if (com.alis.app.RendererBridge.video === player) com.alis.app.RendererBridge.video = null
         player.release()
         scope.cancel()

@@ -328,6 +328,7 @@
     <string name="fm_bookmark">Favorilere ekle</string>
     <string name="fm_unbookmark">Favorilerden çıkar</string>
     <string name="favorites">Favoriler</string>
+    <string name="link_open_title">%1$s bu cihazda oynatmak istiyor</string>
     <string name="pl_move_up">Yukarı taşı</string>
     <string name="pl_move_down">Aşağı taşı</string>
     <string name="pl_remove">Listeden çıkar</string>

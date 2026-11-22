@@ -29,6 +29,8 @@ class AlisApp : Application(), GraphProvider, TransfersProvider, SingletonImageL
         nm.createNotificationChannel(NotificationChannel(CH_RENDERER, getString(R.string.ch_renderer), NotificationManager.IMPORTANCE_LOW))
         nm.createNotificationChannel(NotificationChannel(CH_UPDATES, getString(R.string.ch_updates), NotificationManager.IMPORTANCE_DEFAULT))
         Background.sync(this)
+        // Eşleşmiş Akış'lardan kumanda komutlarını dinle, oynatma durumunu bildir
+        AkisLink.start(this, g)
         // Günde en fazla bir kez GitHub'da yeni sürüm var mı (Ayarlar → Hakkında'dan kapatılabilir)
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
             Updater.check(this@AlisApp, force = false)
